@@ -94,17 +94,17 @@ export const Layout: React.FC<LayoutProps> = ({
   const navItems = useMemo(
     () => [
       { id: 'dashboard', label: 'Início', icon: 'home', group: 'Principal', visible: permissions.length === 0 || has('dashboard.read', 'products.view') },
-      { id: 'sales', label: 'Vender', icon: 'point_of_sale', group: 'Principal', visible: permissions.length === 0 || has('sales.create') },
-      { id: 'quotation', label: 'Cotações', icon: 'request_quote', group: 'Principal', visible: permissions.length === 0 || has('sales.create', 'sales.read') },
-      { id: 'inventory', label: 'Artigos e Stock', icon: 'inventory_2', group: 'Stock e Compras', visible: permissions.length === 0 || has('products.read', 'products.view', 'stock.read', 'stock.view') },
-      { id: 'purchases', label: 'Compras', icon: 'shopping_cart', group: 'Stock e Compras', visible: permissions.length === 0 || has('purchases.read', 'purchases.invoice.create') },
-      { id: 'movements', label: 'Entradas, Saídas e Transferências', icon: 'swap_horiz', group: 'Stock e Compras', visible: permissions.length === 0 || has('stock.read', 'stock.view', 'stock.direct_entry', 'stock.direct_exit') },
-      { id: 'entities', label: 'Clientes e Fornecedores', icon: 'groups', group: 'Comercial e Financeiro', visible: permissions.length === 0 || has('settings.manage', 'products.view', 'customers.manage') },
-      { id: 'documents', label: 'Documentos', icon: 'description', group: 'Comercial e Financeiro', visible: permissions.length === 0 || has('documents.view') },
-      { id: 'accounts', label: 'Caixa, Pagamentos e Contas', icon: 'account_balance_wallet', group: 'Comercial e Financeiro', visible: permissions.length === 0 || has('payments.read', 'payments.view', 'accounts.read') },
-      { id: 'reports', label: 'Relatórios', icon: 'analytics', group: 'Gestão', visible: permissions.length === 0 || has('reports.read', 'reports.sales', 'reports.stock') },
+      { id: 'inventory', label: 'Artigos e Stock', icon: 'inventory_2', group: 'Principal', visible: permissions.length === 0 || has('products.read', 'products.view', 'stock.read', 'stock.view') },
+      { id: 'sales', label: 'Nova Venda', icon: 'local_offer', group: 'Principal', visible: permissions.length === 0 || has('sales.create') },
+      { id: 'quotation', label: 'Cotação', icon: 'request_quote', group: 'Principal', visible: permissions.length === 0 || has('sales.create', 'sales.read') },
+      { id: 'purchases', label: 'Compras', icon: 'shopping_cart', group: 'Principal', visible: permissions.length === 0 || has('purchases.read', 'purchases.invoice.create') },
+      { id: 'movements', label: 'Entradas e Saídas', icon: 'swap_horiz', group: 'Principal', visible: permissions.length === 0 || has('stock.read', 'stock.view', 'stock.direct_entry', 'stock.direct_exit') },
+      { id: 'entities', label: 'Clientes e Fornecedores', icon: 'group', group: 'Principal', visible: permissions.length === 0 || has('settings.manage', 'products.view', 'customers.manage') },
+      { id: 'documents', label: 'Documentos', icon: 'description', group: 'Principal', visible: permissions.length === 0 || has('documents.view') },
+      { id: 'accounts', label: 'Pagamentos e Contas', icon: 'account_balance_wallet', group: 'Principal', visible: permissions.length === 0 || has('payments.read', 'payments.view', 'accounts.read') },
+      { id: 'reports', label: 'Relatórios', icon: 'analytics', group: 'Principal', visible: permissions.length === 0 || has('reports.read', 'reports.sales', 'reports.stock') },
       { id: 'license', label: 'Plano e Licença', icon: 'card_membership', group: 'Gestão', visible: permissions.length === 0 || has('settings.manage') },
-      { id: 'administration', label: 'Administração', icon: 'admin_panel_settings', group: 'Gestão', visible: permissions.length === 0 || has('settings.manage', 'users.manage') },
+      { id: 'administration', label: 'Administração', icon: 'settings', group: 'Gestão', visible: permissions.length === 0 || has('settings.manage', 'users.manage') },
     ].filter((item) => item.visible),
     [permissions],
   );
@@ -202,11 +202,13 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-0 py-2">
+      <nav className="flex-1 overflow-y-auto px-0 py-3 font-sans">
         <div className="space-y-4">
           {navGroups.map((section) => (
             <div key={section.group}>
-              <p className="px-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{section.group}</p>
+              {section.group !== 'Principal' && (
+                <p className="px-5 pb-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{section.group}</p>
+              )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
                   const isActive = activeTab === item.id;
@@ -214,22 +216,22 @@ export const Layout: React.FC<LayoutProps> = ({
                     <button
                       key={item.id}
                       onClick={() => navigate(item.id)}
-                      className={`group relative flex w-full items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer ${
+                      className={`group relative flex w-full items-center gap-3.5 px-5 py-3 text-left transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-[#e8f0fe] text-[#001e40] dark:bg-[#1a2c42] dark:text-[#a7c8ff] font-black border-r-[4px] border-[#001e40] dark:border-[#70a6ff]'
-                          : 'font-bold text-slate-700 hover:bg-slate-100/80 dark:text-[#cbd0d4] dark:hover:bg-[#252a2d]'
+                          ? 'bg-[#e4ecf6] text-[#001e40] dark:bg-[#1a2c42] dark:text-[#a7c8ff] font-extrabold border-r-[4px] border-[#001e40] dark:border-[#70a6ff]'
+                          : 'font-semibold text-slate-800 hover:bg-slate-100/70 dark:text-[#cbd0d4] dark:hover:bg-[#252a2d]'
                       }`}
                     >
-                      <div
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border ${
-                          isActive
-                            ? 'border-[#001e40] bg-white text-[#001e40] dark:border-[#70a6ff] dark:bg-[#0f1d2d] dark:text-[#a7c8ff] shadow-2xs'
-                            : 'border-slate-400/80 bg-white text-slate-600 group-hover:border-[#001e40] group-hover:text-[#001e40] dark:border-slate-600 dark:bg-[#15191b] dark:text-slate-300'
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[15px]">{item.icon}</span>
-                      </div>
-                      <span className={`truncate text-[13px] ${isActive ? 'font-black text-[#001e40] dark:text-[#a7c8ff]' : 'font-bold text-slate-700 dark:text-slate-200'}`}>
+                      {isActive ? (
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded border-[1.5px] border-[#001e40] bg-transparent text-[#001e40] dark:border-[#70a6ff] dark:text-[#a7c8ff]">
+                          <span className="material-symbols-outlined text-[15px] font-bold">{item.icon}</span>
+                        </div>
+                      ) : (
+                        <span className="material-symbols-outlined text-[20px] shrink-0 text-slate-800 dark:text-slate-300 group-hover:text-[#001e40] transition-colors">
+                          {item.icon}
+                        </span>
+                      )}
+                      <span className={`truncate text-[14px] tracking-tight ${isActive ? 'font-black text-[#001e40] dark:text-[#a7c8ff]' : 'font-semibold text-slate-800 dark:text-slate-200'}`}>
                         {item.label}
                       </span>
                     </button>
