@@ -33,26 +33,34 @@ export const PublicRoutes: React.FC<PublicRoutesProps> = ({
 
   const navigate = (route: string) => {
     let target = '/';
-    if (route === 'pricing') target = '/pricing';
-    else if (route === 'register') target = '/register';
-    else if (route === 'login') target = '/login';
-    else if (route === 'home' || route === 'landing') target = '/';
-    else target = `/${route}`;
+    if (route === 'pricing' || route === '/pricing') target = '/pricing';
+    else if (route.startsWith('register') || route.startsWith('/register')) {
+      target = route.startsWith('/') ? route : `/${route}`;
+    } else if (route === 'login' || route === '/login') target = '/login';
+    else if (route === 'home' || route === 'landing' || route === '/') target = '/';
+    else target = route.startsWith('/') ? route : `/${route}`;
 
     window.history.pushState({}, '', target);
-    setCurrentPath(target);
+    setCurrentPath(window.location.pathname);
   };
 
-  // If user is already authenticated and on landing/pricing, route to app
-  if (session && userContext && (currentPath === '/' || currentPath === '/pricing' || currentPath === '/register' || currentPath === '/login')) {
+  // If user is already authenticated and on landing/pricing/register, route straight to private app
+  if (
+    session &&
+    userContext &&
+    (currentPath === '/' ||
+      currentPath.startsWith('/pricing') ||
+      currentPath.startsWith('/register') ||
+      currentPath.startsWith('/login'))
+  ) {
     return <>{children}</>;
   }
 
-  if (currentPath === '/pricing') {
+  if (currentPath.startsWith('/pricing')) {
     return <PricingPage onNavigate={navigate} />;
   }
 
-  if (currentPath === '/register') {
+  if (currentPath.startsWith('/register')) {
     return <RegisterPage onNavigate={navigate} />;
   }
 

@@ -3,6 +3,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { PublicRoutes } from './PublicRoutes';
 import { PrivateRoutes } from './PrivateRoutes';
 import { PageLoader } from '@/shared/components/feedback';
+import { env } from '@/app/config/env';
 import { requireSupabase } from '@/integrations/supabase/client';
 import { logger } from '@/shared/lib/logger';
 import type { UserContext } from '@/shared/types/domain.types';
@@ -22,8 +23,76 @@ export const AppRouter: React.FC = () => {
 
     setLoadingContext(true);
     setLoadError('');
+
+    if (env.useMockData) {
+      setUserContext({
+        userId: session.user?.id || 'usr-001',
+        companyId: 'a0000000-0000-0000-0000-000000000001',
+        fullName: session.user?.user_metadata?.full_name || 'Administrador Geral',
+        email: session.user?.email || 'admin@casadepneus.co.mz',
+        isActive: true,
+        forcePasswordChange: false,
+        roles: [{ code: 'ADMIN', name: 'Administrador do Sistema' }],
+        permissions: ['*'],
+        branches: [{ id: 'b001', code: 'SED', name: 'Sede Maputo' }],
+        warehouses: [{ id: 'w001', code: 'ARM1', name: 'Armazém Principal' }],
+        activeWarehouse: { id: 'w001', code: 'ARM1', name: 'Armazém Principal' },
+        activePosTerminal: { id: 'pos001', code: 'POS-01', name: 'Caixa 01' },
+        systemMode: 'ONLINE',
+      });
+      setLoadingContext(false);
+      return;
+    }
+
     try {
       const client = requireSupabase();
+
+      // Primary: Call the canonical get_current_user_context RPC
+      const { data: ctxData, error: ctxErr } = await client.rpc('get_current_user_context');
+
+      if (!ctxErr && ctxData && ctxData.company_id) {
+        setUserContext({
+          userId: ctxData.user_id || session.user.id,
+          companyId: ctxData.company_id,
+          fullName: ctxData.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Utilizador',
+          email: ctxData.email || session.user.email || '',
+          isActive: ctxData.is_active !== false,
+          forcePasswordChange: Boolean(ctxData.force_password_change),
+          roles: Array.isArray(ctxData.roles)
+            ? ctxData.roles.map((r: any) => ({
+                code: typeof r === 'string' ? r : r.code || r.role_code || 'USER',
+                name: typeof r === 'string' ? r : r.name || r.role_name || r.code || 'Utilizador',
+              }))
+            : [],
+          permissions: Array.isArray(ctxData.permissions)
+            ? ctxData.permissions.map((p: any) => String(p.permission_code || p.code || p))
+            : [],
+          branches: Array.isArray(ctxData.branches)
+            ? ctxData.branches.map((b: any) => ({ id: b.id || b.branch_id, code: b.code || '', name: b.name || '' }))
+            : [],
+          warehouses: Array.isArray(ctxData.warehouses)
+            ? ctxData.warehouses.map((w: any) => ({ id: w.id || w.warehouse_id, code: w.code || '', name: w.name || '' }))
+            : [],
+          activeBranch: ctxData.active_branch
+            ? { id: ctxData.active_branch.id || ctxData.active_branch.branch_id, code: ctxData.active_branch.code || '', name: ctxData.active_branch.name || '' }
+            : undefined,
+          activeWarehouse: ctxData.active_warehouse
+            ? { id: ctxData.active_warehouse.id || ctxData.active_warehouse.warehouse_id, code: ctxData.active_warehouse.code || '', name: ctxData.active_warehouse.name || '' }
+            : undefined,
+          activePosTerminal: ctxData.active_pos_terminal
+            ? {
+                id: ctxData.active_pos_terminal.id || ctxData.active_pos_terminal.pos_terminal_id,
+                code: ctxData.active_pos_terminal.code || ctxData.active_pos_terminal.terminal_code || '',
+                name: ctxData.active_pos_terminal.name || ctxData.active_pos_terminal.display_name || '',
+                seriesPrefix: ctxData.active_pos_terminal.series_prefix || ctxData.active_pos_terminal.invoice_series_prefix,
+              }
+            : undefined,
+          systemMode: ctxData.system_mode || 'LIVE',
+        });
+        return;
+      }
+
+      // Secondary fallback
       const companyIdResult = await client.rpc('get_user_company_id');
       if (companyIdResult.error || !companyIdResult.data) {
         throw companyIdResult.error ?? new Error('Empresa do utilizador não configurada.');
@@ -31,14 +100,13 @@ export const AppRouter: React.FC = () => {
 
       const activeContextResult = await client.rpc('get_active_operational_context_v1');
       const activeContext = activeContextResult.data?.[0];
-
       const rolesResult = await client.rpc('get_user_effective_roles_v1');
       const permissionsResult = await client.rpc('get_user_effective_permissions_v1');
 
       const user = session.user;
       setUserContext({
         userId: user.id,
-        companyId: activeContext?.company_id || 'default-company',
+        companyId: activeContext?.company_id || companyIdResult.data,
         fullName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilizador',
         email: user.email || '',
         isActive: true,

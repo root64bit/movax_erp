@@ -313,8 +313,8 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.cancel_financial_advice FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.cancel_financial_advice TO authenticated;
+REVOKE ALL ON FUNCTION public.cancel_financial_advice(UUID, TEXT, UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cancel_financial_advice(UUID, TEXT, UUID) TO authenticated;
 
 -- 6. Database RPC: get_supplier_total_purchases_summary
 CREATE OR REPLACE FUNCTION public.get_supplier_total_purchases_summary()

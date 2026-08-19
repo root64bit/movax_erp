@@ -411,7 +411,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.cancel_financial_advice FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.cancel_financial_advice TO authenticated;
+REVOKE ALL ON FUNCTION public.cancel_financial_advice(UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cancel_financial_advice(UUID, TEXT) TO authenticated;
 
 COMMIT;

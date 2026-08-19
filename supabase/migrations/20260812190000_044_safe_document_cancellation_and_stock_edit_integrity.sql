@@ -137,8 +137,7 @@ $$;
 REVOKE ALL ON FUNCTION public.update_operational_document_v2(UUID,TEXT,TEXT,TEXT,NUMERIC,TEXT,JSONB,NUMERIC,BOOLEAN) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.update_operational_document_v2(UUID,TEXT,TEXT,TEXT,NUMERIC,TEXT,JSONB,NUMERIC,BOOLEAN) TO authenticated;
 
--- Administrators cancel issued documents. Physical deletion is intentionally not
--- exposed: the fiscal number and audit trail remain available.
+DROP FUNCTION IF EXISTS public.admin_cancel_operational_document_v2(UUID, TEXT, UUID);
 CREATE OR REPLACE FUNCTION public.admin_cancel_operational_document_v2(
   p_document_id UUID,p_reason TEXT,p_idempotency_key UUID
 )

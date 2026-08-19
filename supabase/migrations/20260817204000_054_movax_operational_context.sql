@@ -12,7 +12,7 @@ ALTER TABLE public.user_profiles
 UPDATE public.user_profiles up
 SET default_branch_id = COALESCE(
       up.default_branch_id,
-      (SELECT ba.branch_id FROM public.branch_access ba JOIN public.branches b ON b.id=ba.branch_id WHERE ba.user_id=up.id AND b.is_active ORDER BY b.is_main DESC, b.code LIMIT 1)
+      (SELECT ba.branch_id FROM public.branch_access ba JOIN public.branches b ON b.id=ba.branch_id WHERE ba.user_id=up.id AND b.is_active ORDER BY b.code LIMIT 1)
     ),
     default_warehouse_id = COALESCE(
       up.default_warehouse_id,
@@ -59,7 +59,7 @@ BEGIN
     WHERE b.company_id = v_company_id
       AND b.is_active
       AND (public.has_branch_access(b.id) OR public.has_permission('settings.manage'))
-    ORDER BY b.is_main DESC, b.code
+    ORDER BY b.code
     LIMIT 1;
   END IF;
   IF v_branch.id IS NULL THEN RAISE EXCEPTION 'BRANCH_CONTEXT_NOT_FOUND'; END IF;
@@ -162,7 +162,7 @@ BEGIN
     WHERE b.company_id=v_profile.company_id
       AND b.is_active
       AND (public.has_branch_access(b.id) OR public.has_permission('settings.manage'))
-    ORDER BY b.is_main DESC, b.code
+    ORDER BY b.code
     LIMIT 1;
   END IF;
 
@@ -291,7 +291,7 @@ BEGIN
     FROM public.branches b
     WHERE b.company_id=v_company_id AND b.is_active
       AND (public.has_branch_access(b.id) OR public.has_permission('settings.manage'))
-    ORDER BY b.is_main DESC, b.code
+    ORDER BY b.code
     LIMIT 1;
   END IF;
 

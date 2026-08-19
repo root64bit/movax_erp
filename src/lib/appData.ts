@@ -868,9 +868,85 @@ export async function loadOperationalReport(
   };
 }
 
+import { env } from '../app/config/env';
+import {
+  DEMO_COMPANY,
+  DEMO_ARTICLES,
+  DEMO_CLIENTS,
+  DEMO_SUPPLIERS,
+  DEMO_DOCUMENTS,
+  DEMO_MOVEMENTS,
+  DEMO_USERS,
+  DEMO_METRICS,
+  DEMO_PAYMENT_TERMS,
+  DEMO_PAYMENT_METHODS,
+} from '@/shared/mock';
+
 export type AppDataScope = 'all' | 'core' | 'sales' | 'stock' | 'documents' | 'entities' | 'users' | 'reports' | 'after-sale';
 
 export async function loadAppData(scope: AppDataScope = 'all'): Promise<AppData> {
+  if (env.useMockData) {
+    return {
+      company: DEMO_COMPANY,
+      permissions: ['*'],
+      articles: DEMO_ARTICLES,
+      clients: DEMO_CLIENTS,
+      suppliers: DEMO_SUPPLIERS,
+      sales: [],
+      movements: DEMO_MOVEMENTS,
+      documents: DEMO_DOCUMENTS,
+      payments: [],
+      ledger: [],
+      users: DEMO_USERS,
+      systemMode: 'ONLINE',
+      userContext: {
+        userId: 'usr-001',
+        companyId: DEMO_COMPANY.id || 'a0000000-0000-0000-0000-000000000001',
+        fullName: 'Administrador Geral',
+        email: 'admin@autopneus.co.mz',
+        isActive: true,
+        forcePasswordChange: false,
+        roles: [{ code: 'ADMINISTRATOR', name: 'Administrador do Sistema' }],
+        permissions: ['*'],
+        branches: [{ id: 'b001', code: 'SED', name: 'Sede Maputo' }],
+        warehouses: [{ id: 'w001', code: 'ARM1', name: 'Armazém Principal' }],
+        activeWarehouse: { id: 'w001', code: 'ARM1', name: 'Armazém Principal' },
+        activePosTerminal: { id: 'pos001', code: 'POS-01', name: 'Caixa 01' },
+        systemMode: 'ONLINE',
+      },
+      dashboardMetrics: DEMO_METRICS,
+      paymentTerms: DEMO_PAYMENT_TERMS,
+      paymentMethods: DEMO_PAYMENT_METHODS,
+      productCategories: [
+        { id: '1', code: 'PNEUS', name: 'Pneus Ligeiros' },
+        { id: '2', code: 'PNEUS_4X4', name: 'Pneus 4x4 / SUV' },
+        { id: '3', code: 'PNEUS_PESADOS', name: 'Pneus Pesados / Camião' },
+        { id: '4', code: 'BATERIAS', name: 'Baterias Auto' },
+        { id: '5', code: 'SERVICOS', name: 'Serviços Oficina' },
+        { id: '6', code: 'LUBRIFICANTES', name: 'Lubrificantes' },
+      ],
+      brands: [
+        { id: '1', code: 'BRIDGESTONE', name: 'Bridgestone' },
+        { id: '2', code: 'MICHELIN', name: 'Michelin' },
+        { id: '3', code: 'GOODYEAR', name: 'Goodyear' },
+        { id: '4', code: 'CONTINENTAL', name: 'Continental' },
+        { id: '5', code: 'WILLARD', name: 'Willard' },
+        { id: '6', code: 'EXIDE', name: 'Exide' },
+        { id: '7', code: 'CASTROL', name: 'Castrol' },
+      ],
+      units: [
+        { id: '1', code: 'UN', name: 'Unidade (UN)' },
+        { id: '2', code: 'KG', name: 'Quilograma (KG)' },
+        { id: '3', code: 'L', name: 'Litro (L)' },
+        { id: '4', code: 'CX', name: 'Caixa (CX)' },
+      ],
+      taxCodes: [
+        { id: '1', code: 'IVA16', name: 'IVA Taxa Normal (16%)' },
+        { id: '2', code: 'ISE', name: 'Isento de IVA (0%)' },
+      ],
+    };
+  }
+
   const client = requireSupabase();
   const companyIdResult = await client.rpc('get_user_company_id');
   if (companyIdResult.error || !companyIdResult.data) {

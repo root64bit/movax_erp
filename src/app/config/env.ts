@@ -1,7 +1,11 @@
-﻿/**
+/**
  * MOVAX ERP / POS - Centralized Environment Configuration
  * Strictly validates and exports environment variables.
  */
+
+const DEFAULT_SUPABASE_URL = 'https://qcautpgexkfdoakfjfrf.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjYXV0cGdleGtmZG9ha2ZqZnJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMjMzMDMsImV4cCI6MjEwMjY5OTMwM30.QHPoIyCsn8BN-07Rk5hRPCb0f_Ev8EQEP1CAjMBYD3U';
 
 function getEnvVar(key: string, defaultValue?: string): string {
   const value = import.meta.env[key];
@@ -15,8 +19,8 @@ function getEnvVar(key: string, defaultValue?: string): string {
 }
 
 export const env = {
-  supabaseUrl: getEnvVar('VITE_SUPABASE_URL'),
-  supabaseAnonKey: getEnvVar('VITE_SUPABASE_ANON_KEY'),
+  supabaseUrl: getEnvVar('VITE_SUPABASE_URL', DEFAULT_SUPABASE_URL),
+  supabaseAnonKey: getEnvVar('VITE_SUPABASE_ANON_KEY', DEFAULT_SUPABASE_ANON_KEY),
   useMockData: getEnvVar('VITE_USE_MOCK_DATA', 'false').toLowerCase() === 'true',
   enableSelectiveLoading: getEnvVar('VITE_ENABLE_SELECTIVE_LOADING', 'true').toLowerCase() !== 'false',
   appMode: getEnvVar('MODE', 'production'),

@@ -1,4 +1,4 @@
-﻿-- MOVAX ERP / POS
+-- MOVAX ERP / POS
 -- Migration 058: SaaS Tenant Provisioning, Subscription Overview and Invoicing.
 
 BEGIN;
@@ -35,7 +35,7 @@ LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS \$\$
+AS $$
 DECLARE
   v_company_id UUID;
   v_subscription public.company_subscriptions;
@@ -124,7 +124,7 @@ BEGIN
     'invoices', v_invoices
   );
 END;
-\$\$;
+$$;
 
 REVOKE ALL ON FUNCTION public.get_company_license_overview_v1() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_company_license_overview_v1() TO authenticated;
@@ -140,7 +140,7 @@ RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS \$\$
+AS $$
 DECLARE
   v_company_id UUID;
   v_plan public.subscription_plans;
@@ -193,7 +193,7 @@ BEGIN
     'amount_mzn', v_amount
   );
 END;
-\$\$;
+$$;
 
 REVOKE ALL ON FUNCTION public.upgrade_subscription_plan_v1(VARCHAR, VARCHAR, VARCHAR, VARCHAR) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.upgrade_subscription_plan_v1(VARCHAR, VARCHAR, VARCHAR, VARCHAR) TO authenticated;
@@ -207,7 +207,7 @@ RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS \$\$
+AS $$
 DECLARE
   v_company_id UUID;
 BEGIN
@@ -224,7 +224,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'addon_code', p_addon_code, 'is_active', p_active);
 END;
-\$\$;
+$$;
 
 REVOKE ALL ON FUNCTION public.toggle_company_addon_v1(VARCHAR, BOOLEAN) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.toggle_company_addon_v1(VARCHAR, BOOLEAN) TO authenticated;
