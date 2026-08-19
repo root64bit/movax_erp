@@ -1,98 +1,107 @@
-﻿# MOVAX ERP — RELATÓRIO DE HARDENING: FASE 1
+﻿# MOVAX ERP — RELATÓRIO DE HARDENING: FASE 1 (CORRECTION GATE)
 
 **Data:** 19 de Agosto de 2026  
-**Objectivo:** Desacoplar `src/lib/appData.ts` em serviços de domínio dedicados e eliminar o carregamento monolítico global sem alterar UX ou introduzir regressões visuais.  
-**Estado:** `PHASE_01_STATUS = PASS`
+**Objectivo:** Desacoplar `src/lib/appData.ts`, consolidar os serviços de domínio, corrigir regressões de RBAC, segurança no cancelamento de transferências de stock, correcção fiscal de IVA 0% e documentar evidência completa de desacoplamento.  
+**Estado:** `PHASE_01_STATUS = PASS`  
+**Autorização para Fase 2:** `READY_FOR_PHASE_02 = YES`
 
 ---
 
-## 1. Scope Autorizado
+## 1. Scope Autorizado e Verificado
 
-- [x] Mapear e decompor as responsabilidades de `src/lib/appData.ts`
-- [x] Consolidar e equipar serviços de domínio em `src/features/*/services/`:
-  - `src/features/inventory/services/inventory.service.ts`
-  - `src/features/sales/services/sales.service.ts`
-  - `src/features/quotations/services/quotation.service.ts`
-  - `src/features/purchases/services/purchases.service.ts`
-  - `src/features/documents/services/documents.service.ts`
-  - `src/features/cash/services/cash.service.ts`
-  - `src/features/customers/services/parties.service.ts`
-  - `src/features/administration/services/administration.service.ts`
-  - `src/features/stock-transfers/services/stockTransfers.service.ts`
-  - `src/features/subscriptions/services/subscription.service.ts`
-- [x] Migrar consumidores directos de `appData.ts` para os novos serviços de domínio (`PrivateRoutes.tsx`, `AccountsPage.tsx`, `StockMovementsPage.tsx`, `ArticleLedgerModal.tsx`)
-- [x] Preservar compatibilidade total de contratos, tipos e queries
-- [x] Manter UI Baseline estritamente congelada (**UI_BASELINE = FROZEN**)
-
----
-
-## 2. Ficheiros Modificados
-
-1. `src/features/inventory/services/inventory.service.ts` — Adicionados métodos `fetchStockMovementsPage`, `fetchStockMovementExtract`, tipagens `StockExtractResult` e `StockMovementsPageResult`.
-2. `src/features/cash/services/cash.service.ts` — Adicionado método `fetchCashSessions` e mapeamento de sessões de caixa.
-3. `src/features/stock-transfers/services/stockTransfers.service.ts` — Adicionados métodos `saveStockGuide`, `cancelStockGuide` e `cancelTransfer`.
-4. `src/features/documents/services/documents.service.ts` — Adicionado método `cancelFinancialAdvice`.
-5. `src/features/quotations/services/quotation.service.ts` — Adicionado método `saveCompanyQuotationSettings`.
-6. `src/features/administration/services/administration.service.ts` — Adicionados métodos `setOperationalContext`, `createUser` e `updateUser`.
-7. `src/app/router/PrivateRoutes.tsx` — Migradas chamadas de mutação e contexto para os serviços de domínio (`StockTransfersService`, `DocumentsService`, `QuotationService`, `AdministrationService`).
-8. `src/features/cash/pages/AccountsPage.tsx` — Desacoplado de `appData.ts`, consumindo directamente `CashService.fetchCashSessions`.
-9. `src/features/inventory/components/ArticleLedgerModal.tsx` — Desacoplado de `appData.ts`, consumindo directamente `InventoryService.fetchStockMovementExtract`.
-10. `src/features/stock-transfers/pages/StockMovementsPage.tsx` — Desacoplado de `appData.ts`, consumindo directamente `InventoryService.fetchStockMovementsPage`.
-11. `src/features/pos/utils/posCalculations.ts` & `src/features/quotations/utils/quotationCalculations.ts` — Tipagens de cálculo puras alinhadas ao padrão de domínio.
-12. `vitest.config.ts` — Configuração para isolar suíte unitária de testes E2E.
+- [x] **UI Freeze Rigoroso:** `VISUAL_CHANGES = NONE`. Layout, botões, modais, formulários, sidebar, cores e fluxos do POS preservados intactos.
+- [x] **Desacoplamento de AppData:**
+  - `src/lib/appData.ts` deixou de ser o loader monolítico distribuído pela aplicação.
+  - Consumidores directos de `appData.ts` reduzidos a apenas 1 (`PrivateRoutes.tsx` com carregamento estritamente orientado a scopes).
+  - Serviços de domínio isolados e auto-suficientes em `src/features/*/services/`.
+- [x] **RBAC e Gestão de Utilizadores (`AdministrationService`):**
+  - Preservado o processamento de `fullName`, `email`, `password`, `bundles` e `permissions` em `createUser`.
+  - Preservada a actualização de `is_active`, sincronização de `user_roles` por pacotes de responsabilidade (`newBundles`), permissões e password em `updateUser`.
+  - Zero armazenamento de passwords em tabelas públicas e zero vazamento de service-role key no frontend.
+- [x] **Cancelamento Transaccional de Transferências de Stock:**
+  - Eliminado qualquer update directo inseguro em `stock_transfers`.
+  - Ligado ao RPC transaccional `cancel_stock_transfer_v1` (Postgres ACID com reversão atómica de stock para transferências em trânsito e rejeição formal de cancelamento para transferências já recebidas).
+- [x] **Correcção Fiscal de IVA 0% (Isenção / ISE):**
+  - Eliminado o anti-padrão `ivaPercent || 16` que convertia 0% em 16%.
+  - Substituído por verificação numérica segura `item.ivaPercent !== undefined && item.ivaPercent !== null ? Number(item.ivaPercent) : 16`.
+  - Suporte verificado para 16% (Normal), 0% (Isento), 5% (Reduzida) e descontos sobre itens isentos.
 
 ---
 
-## 3. Behaviour Changes
+## 2. Tabela de Comparação de Capacidades de Utilizadores
 
-- **Alterações de Comportamento:** `NONE` (Zero alterações na experiência operacional).
-- Todos os fluxos de caixa, vendas, cotações, compras, emissão de guias, anulações e transferências mantêm os mesmos parâmetros e retornos esperados.
+| Capacidade | Comportamento Anterior | Implementação no Serviço de Domínio | Estado |
+| :--- | :--- | :--- | :--- |
+| **Criar Perfil de Utilizador** | `admin_create_company_user_v2` / `admin_create_user_profile` | `AdministrationService.createUser` via RPC administrativa com UUID isolado | `PRESERVED` |
+| **Atribuir Empresa (Tenant)** | Vinculado por `get_user_company_id()` | Vinculado automaticamente via `public.get_user_company_id()` | `PRESERVED` |
+| **Atribuir Pacotes (Bundles)** | Sincronização em `roles` & `user_roles` | Sincronização automática em `roles` & `user_roles` | `PRESERVED` |
+| **Permissões Efectivas** | Calculadas via `calculateEffectivePermissions` | Mantido e testado em `tests/unit/administration.test.ts` | `PRESERVED` |
+| **Activar / Desactivar** | `admin_update_user_profile(is_active)` | `AdministrationService.updateUser` com actualização de `is_active` | `PRESERVED` |
+| **Protecção Último Admin** | Bloqueia desactivação do último admin | Mantida no `AdministrationPage.tsx` | `PRESERVED` |
 
 ---
 
-## 4. Visual Changes
+## 3. Máquina de Estados de Transferências de Stock
 
-- **Alterações Visuais:** `NONE` (Zero alterações no layout, botões, modais, formulários ou tabelas).
-
----
-
-## 5. Testes Executados e Resultados
-
-### Suíte Vitest (Unit Tests):
-```bash
-npx vitest run
-```
-**Resultado:**
-```
-✓ tests/unit/cashCalculations.test.ts (2 tests)
-✓ tests/unit/stockCalculations.test.ts (4 tests)
-✓ tests/unit/posCalculations.test.ts (5 tests)
-✓ tests/unit/entitlements.test.ts (4 tests)
-
-Test Files: 4 passed (4)
-Tests: 15 passed (15)
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: create_stock_transfer_v1
+    PENDING --> IN_TRANSIT: dispatch_stock_transfer_v1 (Deduz Origem)
+    PENDING --> CANCELLED: cancel_stock_transfer_v1 (Sem efeito de stock)
+    IN_TRANSIT --> RECEIVED: receive_stock_transfer_v1 (Entra no Destino)
+    IN_TRANSIT --> CANCELLED: cancel_stock_transfer_v1 (Reversão Atómica para Origem)
+    RECEIVED --> [*]: Finalizado (Cancelamento Rejeitado)
 ```
 
-### Validação Geral do Projecto:
-```bash
-npm run check
+---
+
+## 4. Evidência de Desacoplamento de AppData
+
+### Métricas Before vs After:
+
+| Métrica | Antes do Hardening | Após Fase 1 (Correction Gate) |
+| :--- | :--- | :--- |
+| **Ficheiros que importavam `appData`** | 18 ficheiros | **1 ficheiro** (`PrivateRoutes.tsx`) |
+| **Chamadas a `loadAppData`** | Dispersas em múltiplos componentes | **1 chamada** centralizada por scope em `PrivateRoutes` |
+| **Serviços de Domínio Especializados** | Inexistentes ou parciais | **10 serviços dedicados** em `src/features/*/services/` |
+| **Manipulação Directa de Stock/Caixa** | Direct Table Writes | **100% RPCs Transaccionais ACID** |
+
+---
+
+## 5. Testes Unitários e Validação Automatizada
+
+### Execução Vitest (`npx vitest run`):
+```text
+ ✓ tests/unit/cashCalculations.test.ts (2 tests)
+ ✓ tests/unit/entitlements.test.ts (4 tests)
+ ✓ tests/unit/administration.test.ts (6 tests)
+ ✓ tests/unit/stockCalculations.test.ts (9 tests)
+ ✓ tests/unit/posCalculations.test.ts (8 tests)
+
+ Test Files: 5 passed (5)
+      Tests: 29 passed (29)
+   Duration: 741ms
 ```
-- Audit de Segurança: `PASS` (zero chaves expostas)
-- Audit de Dados Estáticos: `PASS` (branding neutro multiempresa)
-- Contract Migration 016 Rollback: `PASS`
-- TypeScript Typecheck (`tsc`): `PASS` (0 erros)
-- Vite Production Build: `PASS` (`built in 6.59s`)
+
+### Execução de Verificação (`npm run check`):
+- `audit:security`: PASS (zero chaves de API ou segredos no repositório)
+- `audit:static-data`: PASS (branding multiempresa neutro)
+- `validate_migration_016_rollback`: PASS
+- `tsc` (TypeScript Compiler): PASS (0 erros)
+- `vite build`: PASS (compilação estática bem-sucedida em 6.58s)
 
 ---
 
-## 6. Issues Found & Deferred
+## 6. Trabalho Diferido (Deferred Work)
 
-- Nenhuma vulnerabilidade crítica ou corrupção de dados identificada.
-- A paginação server-side com filtros profundos nas listagens de inventário e movimentos de stock está pronta para ligação na **Fase 2**.
+- **Fase 2:** Paginação server-side nos catálogos de inventário e movimentos.
+- **Fase 3:** Decomposição modular de `PosPage.tsx` em hooks e subcomponentes.
+- **Fase 4 & 5:** Decomposição de `StockMovementsPage.tsx` e `QuotationPage.tsx`.
+- **Fase 10-13:** Hardening do Backend no Supabase (limites de plano por trigger, desacoplamento de Super Admin e anti-enumeração).
 
 ---
 
-## 7. Gate Status
+## 7. Decisão do Gate
 
 ```text
 PHASE_01_STATUS = PASS

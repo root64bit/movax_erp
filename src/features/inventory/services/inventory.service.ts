@@ -1,4 +1,4 @@
-﻿import { requireSupabase } from '@/integrations/supabase/client';
+import { requireSupabase } from '@/integrations/supabase/client';
 import { numberValue, stringValue } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
@@ -192,7 +192,7 @@ export const InventoryService = {
       p_profit_margin: Number(input.profitMargin) || 0,
       p_sell_price: Number(input.sellPrice) || 0,
       p_sell_price_with_iva: Number(input.sellPriceWithIva) || 0,
-      p_tax_rate: Number(input.taxRate) || 16,
+      p_tax_rate: input.taxRate !== undefined && input.taxRate !== null ? Number(input.taxRate) : 16,
       p_category_name: input.category?.trim() || 'Geral',
       p_brand_name: input.brand?.trim() || null,
     });

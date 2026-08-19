@@ -20,7 +20,10 @@ export function calculateQuotationTotals(
     const qty = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;
     const discPercent = Number(item.discountPercent) || 0;
-    const vatRate = (Number(item.ivaPercent) || defaultVatRate) / 100;
+    
+    // Safely extract VAT rate without turning 0% (exempt) into 16%
+    const rawVat = item.ivaPercent !== undefined && item.ivaPercent !== null ? Number(item.ivaPercent) : defaultVatRate;
+    const vatRate = (isNaN(rawVat) ? defaultVatRate : rawVat) / 100;
 
     const baseAmount = qty * price;
     const lineDiscount = baseAmount * (discPercent / 100);

@@ -1,4 +1,4 @@
-﻿import { requireSupabase } from '@/integrations/supabase/client';
+import { requireSupabase } from '@/integrations/supabase/client';
 import { numberValue, isUuid } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
@@ -37,7 +37,7 @@ export const QuotationService = {
         quantity: item.quantity,
         unit_price_incl: item.unitPrice || 0,
         discount_amount: item.discountAmount || 0,
-        tax_rate: item.ivaPercent || 16,
+        tax_rate: item.ivaPercent !== undefined && item.ivaPercent !== null ? Number(item.ivaPercent) : 16,
         line_type: item.lineType || (isUuid(item.articleId) ? 'STOCK' : 'MANUAL'),
         stock_effect_enabled: false,
       })),

@@ -23,7 +23,8 @@ export interface CalculatedTotals {
 
 export function calculatePosTotals(
   items: SaleItem[],
-  generalDiscountPercent = 0
+  generalDiscountPercent = 0,
+  defaultVatRate = 16
 ): CalculatedTotals {
   let subtotal = 0;
   let totalVat = 0;
@@ -33,7 +34,10 @@ export function calculatePosTotals(
     const qty = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;
     const discPercent = Number(item.discountPercent) || 0;
-    const vatRate = (Number(item.ivaPercent) || 16) / 100;
+    
+    // Safely extract VAT rate without turning 0% (exempt) into 16%
+    const rawVat = item.ivaPercent !== undefined && item.ivaPercent !== null ? Number(item.ivaPercent) : defaultVatRate;
+    const vatRate = (isNaN(rawVat) ? defaultVatRate : rawVat) / 100;
 
     const baseAmount = qty * price;
     const lineDiscount = baseAmount * (discPercent / 100);

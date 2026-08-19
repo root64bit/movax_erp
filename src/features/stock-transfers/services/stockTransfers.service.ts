@@ -1,4 +1,4 @@
-﻿import { requireSupabase } from '@/integrations/supabase/client';
+import { requireSupabase } from '@/integrations/supabase/client';
 import { numberValue } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
@@ -111,17 +111,13 @@ export const StockTransfersService = {
 
   async cancelTransfer(transferId: string, reason?: string): Promise<void> {
     const client = requireSupabase();
-    const { error } = await client
-      .from('stock_transfers')
-      .update({
-        status: 'CANCELLED',
-        notes: reason ? `Cancelado: ${reason}` : undefined,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', transferId);
+    const { error } = await client.rpc('cancel_stock_transfer_v1', {
+      p_transfer_id: transferId,
+      p_reason: reason?.trim() || null,
+    });
     if (error) {
       logger.error('Failed to cancel stock transfer', error, { module: 'StockTransfersService', transferId });
-      throw new AppError(error.message || 'Falha ao anular transferência.');
+      throw new AppError(error.message || 'Falha ao anular transferência de stock.');
     }
   },
 
