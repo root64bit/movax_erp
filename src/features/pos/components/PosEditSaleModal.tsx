@@ -33,17 +33,43 @@ export const PosEditSaleModal: React.FC<PosEditSaleModalProps> = ({
   onClose,
   onUpdateDocument,
 }) => {
-  const [editDocumentDate, setEditDocumentDate] = useState('');
-  const [editClientName, setEditClientName] = useState('');
-  const [editClientNuit, setEditClientNuit] = useState('');
-  const [editClientAddress, setEditClientAddress] = useState('');
-  const [editGrandTotal, setEditGrandTotal] = useState(0);
-  const [editNotes, setEditNotes] = useState('');
-  const [editItems, setEditItems] = useState<SaleItem[]>([]);
-  const [editGeneralDiscount, setEditGeneralDiscount] = useState(0);
+  const [editDocumentDate, setEditDocumentDate] = useState(() => (editingSale?.date || new Date().toISOString()).slice(0, 10));
+  const [editClientName, setEditClientName] = useState(() => editingSale?.clientName || '');
+  const [editClientNuit, setEditClientNuit] = useState(() => editingSale?.clientNuit || '');
+  const [editClientAddress, setEditClientAddress] = useState(() => editingSale?.clientAddress || '');
+  const [editGrandTotal, setEditGrandTotal] = useState(() => editingSale?.totalAmount || 0);
+  const [editNotes, setEditNotes] = useState(() => editingSale?.notes || '');
+  const [editGeneralDiscount, setEditGeneralDiscount] = useState(() => {
+    if (!editingSale) return 0;
+    const lineDiscount = (editingSale.items || []).reduce((sum, item) => sum + (item.discountAmount || 0), 0);
+    return editingSale.generalDiscountAmount ?? Math.max(0, (editingSale.descontoTotal || 0) - lineDiscount);
+  });
   const [editKeepAsWalkIn, setEditKeepAsWalkIn] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState('');
+
+  const [editItems, setEditItems] = useState<SaleItem[]>(() => {
+    if (!editingSale) return [];
+    let loadedItems: SaleItem[] = editingSale.items && editingSale.items.length > 0 ? JSON.parse(JSON.stringify(editingSale.items)) : [];
+    if (loadedItems.length === 0 && (editingSale.totalAmount || 0) > 0) {
+      loadedItems = [
+        {
+          articleId: `custom-${Date.now()}`,
+          code: 'DIV',
+          description: editingSale.notes || 'Venda Diversa Registada',
+          quantity: 1,
+          unitPrice: editingSale.totalAmount || 0,
+          discountPercent: 0,
+          discountAmount: 0,
+          ivaPercent: 16,
+          total: editingSale.totalAmount || 0,
+          lineType: 'MANUAL',
+          stockEffectEnabled: false,
+        },
+      ];
+    }
+    return recalculateSaleItems(loadedItems);
+  });
 
   useEffect(() => {
     if (!editingSale) return;
