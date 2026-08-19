@@ -107,17 +107,20 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
 
   const tabAccess: Record<string, string[]> = {
     dashboard: [],
+    sales: ['sales.create', 'sales.view'],
     pos: ['sales.create', 'sales.view'],
-    quotation: ['sales.create', 'sales.view'],
-    inventory: ['products.view'],
-    movements: ['stock.direct_entry', 'stock.direct_exit', 'stock.transfer'],
-    purchases: ['purchases.view', 'purchases.invoice.create'],
-    documents: ['documents.view'],
-    accounts: ['cash_sessions.view', 'payments.create'],
-    entities: ['customers.view', 'suppliers.view'],
-    reports: ['reports.financial', 'reports.stock'],
-    admin: ['settings.manage'],
+    quotation: ['sales.create', 'sales.view', 'sales.read'],
+    inventory: ['products.view', 'products.read', 'stock.view', 'stock.read'],
+    movements: ['stock.direct_entry', 'stock.direct_exit', 'stock.transfer', 'stock.view', 'stock.read'],
+    purchases: ['purchases.view', 'purchases.invoice.create', 'purchases.read'],
+    documents: ['documents.view', 'documents.search', 'documents.print'],
+    accounts: ['cash_sessions.view', 'payments.create', 'payments.view', 'payments.read'],
+    entities: ['customers.view', 'suppliers.view', 'customers.manage', 'settings.manage'],
+    reports: ['reports.financial', 'reports.stock', 'reports.sales', 'reports.read'],
+    admin: ['settings.manage', 'users.manage'],
+    administration: ['settings.manage', 'users.manage'],
     subscriptions: ['settings.manage'],
+    license: ['settings.manage'],
   };
 
   const applyAppData = useCallback((data: any) => {
@@ -207,7 +210,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
           />
         )}
 
-        {activeTab === 'pos' && hasAccess('pos') && (
+        {(activeTab === 'pos' || activeTab === 'sales') && (hasAccess('pos') || hasAccess('sales')) && (
           <PosPage
             articles={articles}
             clients={clients}
@@ -416,11 +419,11 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
           />
         )}
 
-        {activeTab === 'subscriptions' && hasAccess('subscriptions') && (
+        {(activeTab === 'subscriptions' || activeTab === 'license') && (hasAccess('subscriptions') || hasAccess('license')) && (
           <LicenseManagement />
         )}
 
-        {activeTab === 'admin' && hasAccess('admin') && (
+        {(activeTab === 'admin' || activeTab === 'administration') && (hasAccess('admin') || hasAccess('administration')) && (
           <Administration
             systemMode={systemMode}
             users={users}
