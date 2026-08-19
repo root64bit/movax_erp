@@ -1,6 +1,6 @@
-﻿import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { InventoryService } from '../../src/features/inventory/services/inventory.service';
-import { isWalkInClient, normalizeClientSearch, getArticlePriceWithIva } from '../../src/features/pos/utils/posCalculations';
+import { isWalkInClient, normalizeClientSearch, getArticlePriceWithIva, createPosArticleSearchLoader } from '../../src/features/pos/utils/posCalculations';
 import type { Article, Client } from '../../src/shared/types/domain.types';
 
 describe('POS Domain Hooks & Context Isolation Contract', () => {
@@ -37,13 +37,14 @@ describe('POS Domain Hooks & Context Isolation Contract', () => {
     { id: 'c-3', code: 'CUST-003', name: 'Supermercado Central', email: 'central@test.com', phone: '829876543', address: 'Rua da Resistência', taxNumber: '400987654', balance: 0, pendingBalance: 0 },
   ];
 
-  it('preserves warehouseId operational context in remote product lookup', async () => {
+  it('preserves warehouseId operational context in remote product lookup via createPosArticleSearchLoader', async () => {
     const searchSpy = vi.spyOn(InventoryService, 'searchProducts').mockResolvedValueOnce([dummyArticles[0]]);
 
     const activeWarehouseId = 'WH-MAPUTO-01';
-    const loader = (query: string) => InventoryService.searchProducts(query, activeWarehouseId, 50);
+    // Use the real production loader factory:
+    const productionLoader = createPosArticleSearchLoader(activeWarehouseId);
 
-    const results = await loader('PROD-A');
+    const results = await productionLoader('PROD-A');
 
     expect(searchSpy).toHaveBeenCalledWith('PROD-A', 'WH-MAPUTO-01', 50);
     expect(results).toHaveLength(1);

@@ -1,12 +1,13 @@
-﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { SaleInvoice } from '@/shared/types/domain.types';
 import type { PosDocumentType, PosDocStatus, PosProps } from '../types/pos.types';
-import { InventoryService } from '@/features/inventory/services/inventory.service';
+import { createPosArticleSearchLoader } from '../utils/posCalculations';
 import { recalculateSaleItems } from '@/lib/documentCalculations';
 import { usePosCart } from '../hooks/usePosCart';
 import { usePosCustomer } from '../hooks/usePosCustomer';
 import { usePosItemDraft } from '../hooks/usePosItemDraft';
 import { usePosShortcuts } from '../hooks/usePosShortcuts';
+import { usePosSubmission } from '../hooks/usePosSubmission';
 import { PosHeader } from '../components/PosHeader';
 import { PosCustomerSection } from '../components/PosCustomerSection';
 import { PosCartTable } from '../components/PosCartTable';
@@ -45,10 +46,27 @@ export const NewSale: React.FC<PosProps> = ({
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [docNumber, setDocNumber] = useState('A atribuir ao confirmar');
   const [docStatus, setDocStatus] = useState<PosDocStatus>('PREPARATION');
-  const savingRef = useRef(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
-  const [confirmedSaleRecord, setConfirmedSaleRecord] = useState<SaleInvoice | null>(null);
+
+  // Modular Submission hook
+  const {
+    saving,
+    saveError,
+    setSaveError,
+    confirmedSaleRecord,
+    setConfirmedSaleRecord,
+    executeSaleSubmission,
+    resetSubmission,
+    savingRef,
+  } = usePosSubmission({
+    onCompleteSale,
+    onSuccess: (savedSale, shouldPrint) => {
+      setDocNumber(savedSale.docNumber || 'CONFIRMADO');
+      setDocStatus('CONFIRMED');
+      if (shouldPrint) {
+        onOpenPrintModal(savedSale);
+      }
+    },
+  });
 
   // Modular Cart hook
   const {
@@ -118,7 +136,7 @@ export const NewSale: React.FC<PosProps> = ({
   const deliveryLocationRef = useRef<HTMLInputElement>(null);
 
   const articleSearchLoader = useMemo(
-    () => (query: string) => InventoryService.searchProducts(query, warehouseId, 50),
+    () => createPosArticleSearchLoader(warehouseId),
     [warehouseId]
   );
 
@@ -140,8 +158,7 @@ export const NewSale: React.FC<PosProps> = ({
     setDocStatus('PREPARATION');
     resetCart();
     itemDraft.resetDraft();
-    setConfirmedSaleRecord(null);
-    setSaveError('');
+    resetSubmission();
     resetCustomer();
     setPaymentReference('');
 
@@ -156,10 +173,9 @@ export const NewSale: React.FC<PosProps> = ({
     if (!confirmResetIfNeeded()) return;
     resetCart();
     itemDraft.resetDraft();
+    resetSubmission();
     setDocStatus('PREPARATION');
     setDocNumber('A atribuir ao confirmar');
-    setSaveError('');
-    setConfirmedSaleRecord(null);
     resetCustomer();
     setDeliveryLocation('');
     setPaymentReference('');
@@ -183,7 +199,6 @@ export const NewSale: React.FC<PosProps> = ({
   const newAccumulatedBalance = previousBalance + (invoiceCreatesDebt ? totals.grandTotal : 0);
 
   const handleSaveAndConfirm = async (shouldPrint: boolean = false) => {
-    if (savingRef.current) return;
     if (items.length === 0) {
       setSaveError('Adicione pelo menos 1 artigo ao documento.');
       return;
@@ -200,58 +215,44 @@ export const NewSale: React.FC<PosProps> = ({
       return;
     }
 
-    savingRef.current = true;
-    setSaving(true);
-    setSaveError('');
+    const newSale: SaleInvoice = {
+      id: `sale-${Date.now()}`,
+      clientId: selectedClientId,
+      documentTypeCode: documentType,
+      docNumber: 'A atribuir ao confirmar',
+      date,
+      clientName: selectedClientName,
+      clientNuit,
+      clientAddress,
+      paymentMethod: paymentSelection.startsWith('METHOD:')
+        ? paymentSelection.replace('METHOD:', '')
+        : defaultCashMethod?.code ?? 'CASH',
+      paymentReference: paymentReference.trim() || undefined,
+      paymentTermCode: paymentSelection.startsWith('TERM:') ? paymentSelection.replace('TERM:', '') : undefined,
+      sellerName: operatorName,
+      items: totals.lines,
+      subtotalBruto: totals.grossTotal,
+      descontoTotal: totals.lineDiscountTotal + totals.generalDiscount,
+      subtotalLiquido: totals.netTotal,
+      ivaTotal: totals.taxTotal,
+      totalAmount: totals.grandTotal,
+      paidAmount:
+        documentType === 'CASH_SALE' || (documentType === 'CUSTOMER_INVOICE' && selectedPaymentTerm?.requiresImmediatePayment)
+          ? totals.grandTotal
+          : 0,
+      pendingAmount:
+        documentType === 'CASH_SALE' || documentType === 'CUSTOMER_DELIVERY_NOTE' || selectedPaymentTerm?.requiresImmediatePayment
+          ? 0
+          : totals.grandTotal,
+      status: 'Concluída',
+      notes,
+      keepAsWalkIn,
+    };
 
     try {
-      const newSale: SaleInvoice = {
-        id: `sale-${Date.now()}`,
-        clientId: selectedClientId,
-        documentTypeCode: documentType,
-        docNumber: 'A atribuir ao confirmar',
-        date,
-        clientName: selectedClientName,
-        clientNuit,
-        clientAddress,
-        paymentMethod: paymentSelection.startsWith('METHOD:')
-          ? paymentSelection.replace('METHOD:', '')
-          : defaultCashMethod?.code ?? 'CASH',
-        paymentReference: paymentReference.trim() || undefined,
-        paymentTermCode: paymentSelection.startsWith('TERM:') ? paymentSelection.replace('TERM:', '') : undefined,
-        sellerName: operatorName,
-        items: totals.lines,
-        subtotalBruto: totals.grossTotal,
-        descontoTotal: totals.lineDiscountTotal + totals.generalDiscount,
-        subtotalLiquido: totals.netTotal,
-        ivaTotal: totals.taxTotal,
-        totalAmount: totals.grandTotal,
-        paidAmount:
-          documentType === 'CASH_SALE' || (documentType === 'CUSTOMER_INVOICE' && selectedPaymentTerm?.requiresImmediatePayment)
-            ? totals.grandTotal
-            : 0,
-        pendingAmount:
-          documentType === 'CASH_SALE' || documentType === 'CUSTOMER_DELIVERY_NOTE' || selectedPaymentTerm?.requiresImmediatePayment
-            ? 0
-            : totals.grandTotal,
-        status: 'Concluída',
-        notes,
-        keepAsWalkIn,
-      };
-
-      const savedSale = await onCompleteSale(newSale);
-      setDocNumber(savedSale.docNumber || 'CONFIRMADO');
-      setConfirmedSaleRecord(savedSale);
-      setDocStatus('CONFIRMED');
-
-      if (shouldPrint) {
-        onOpenPrintModal(savedSale);
-      }
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Falha ao confirmar o documento.');
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
+      await executeSaleSubmission(newSale, { shouldPrint });
+    } catch {
+      // Handled and stored in saveError via usePosSubmission
     }
   };
 

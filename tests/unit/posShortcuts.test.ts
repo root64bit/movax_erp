@@ -1,24 +1,21 @@
 ﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { PosDocStatus } from '../../src/features/pos/types/pos.types';
-import type { SaleInvoice } from '../../src/shared/types/domain.types';
+import { registerPosShortcutsListener } from '../../src/features/pos/hooks/usePosShortcuts';
 
-// Production shortcut listener simulation directly testing the handler contract
-describe('usePosShortcuts Production Keybinding Contract', () => {
-  let addEventListenerSpy: any;
-  let removeEventListenerSpy: any;
-  let attachedHandler: ((e: any) => void) | null = null;
+describe('usePosShortcuts & registerPosShortcutsListener Real Production Contract', () => {
+  let listeners: Record<string, ((e: any) => void)[]> = {};
 
   beforeEach(() => {
-    attachedHandler = null;
-    addEventListenerSpy = vi.fn((event: string, handler: any) => {
-      if (event === 'keydown') {
-        attachedHandler = handler;
-      }
-    });
-    removeEventListenerSpy = vi.fn();
+    listeners = {};
     (global as any).window = {
-      addEventListener: addEventListenerSpy,
-      removeEventListener: removeEventListenerSpy,
+      addEventListener: vi.fn((event: string, handler: any) => {
+        listeners[event] = listeners[event] || [];
+        listeners[event].push(handler);
+      }),
+      removeEventListener: vi.fn((event: string, handler: any) => {
+        if (listeners[event]) {
+          listeners[event] = listeners[event].filter((h) => h !== handler);
+        }
+      }),
     };
   });
 
@@ -26,55 +23,16 @@ describe('usePosShortcuts Production Keybinding Contract', () => {
     delete (global as any).window;
   });
 
-  const setupProductionShortcuts = (props: {
-    docStatus: PosDocStatus;
-    confirmedSaleRecord: SaleInvoice | null;
-    onF2: () => void;
-    onF3: () => void;
-    onF5: () => void;
-    onF9: () => void;
-    onEscape: () => void;
-  }) => {
-    const handleKeyDown = (e: any) => {
-      const activeElement = e.target;
-      const isInput =
-        activeElement instanceof Object &&
-        (activeElement.tagName === 'INPUT' ||
-          activeElement.tagName === 'SELECT' ||
-          activeElement.tagName === 'TEXTAREA');
-
-      if (e.key === 'Escape') {
-        if (props.docStatus === 'CONFIRMING') {
-          e.preventDefault?.();
-          props.onEscape();
-        }
-        return;
-      }
-
-      if (isInput) return;
-
-      if (e.key === 'F2') {
-        e.preventDefault?.();
-        props.onF2();
-      } else if (e.key === 'F3') {
-        e.preventDefault?.();
-        props.onF3();
-      } else if (e.key === 'F5') {
-        e.preventDefault?.();
-        props.onF5();
-      } else if (e.key === 'F9') {
-        e.preventDefault?.();
-        props.onF9();
-      }
-    };
-
-    (global as any).window.addEventListener('keydown', handleKeyDown);
-    return () => (global as any).window.removeEventListener('keydown', handleKeyDown);
+  const dispatchKeyEvent = (key: string) => {
+    const preventDefault = vi.fn();
+    const event = { key, preventDefault };
+    (listeners['keydown'] || []).forEach((handler) => handler(event));
+    return { preventDefault };
   };
 
-  it('triggers onF2 when F2 key is pressed outside inputs', () => {
+  it('triggers onF2 when F2 key is pressed', () => {
     const onF2 = vi.fn();
-    setupProductionShortcuts({
+    const cleanup = registerPosShortcutsListener({
       docStatus: 'PREPARATION',
       confirmedSaleRecord: null,
       onF2,
@@ -84,35 +42,36 @@ describe('usePosShortcuts Production Keybinding Contract', () => {
       onEscape: vi.fn(),
     });
 
-    const preventDefault = vi.fn();
-    attachedHandler?.({ key: 'F2', target: { tagName: 'DIV' }, preventDefault });
-
+    const { preventDefault } = dispatchKeyEvent('F2');
     expect(onF2).toHaveBeenCalledTimes(1);
     expect(preventDefault).toHaveBeenCalledTimes(1);
+
+    cleanup();
+    expect((global as any).window.removeEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
   });
 
-  it('ignores F2 when focused inside an INPUT to preserve editing', () => {
-    const onF2 = vi.fn();
-    setupProductionShortcuts({
-      docStatus: 'PREPARATION',
+  it('triggers onF3 when F3 key is pressed', () => {
+    const onF3 = vi.fn();
+    const cleanup = registerPosShortcutsListener({
+      docStatus: 'CONFIRMING',
       confirmedSaleRecord: null,
-      onF2,
-      onF3: vi.fn(),
+      onF2: vi.fn(),
+      onF3,
       onF5: vi.fn(),
       onF9: vi.fn(),
       onEscape: vi.fn(),
     });
 
-    const preventDefault = vi.fn();
-    attachedHandler?.({ key: 'F2', target: { tagName: 'INPUT' }, preventDefault });
+    const { preventDefault } = dispatchKeyEvent('F3');
+    expect(onF3).toHaveBeenCalledTimes(1);
+    expect(preventDefault).toHaveBeenCalledTimes(1);
 
-    expect(onF2).not.toHaveBeenCalled();
-    expect(preventDefault).not.toHaveBeenCalled();
+    cleanup();
   });
 
-  it('triggers onF5 when F5 is pressed outside inputs', () => {
+  it('triggers onF5 when F5 key is pressed', () => {
     const onF5 = vi.fn();
-    setupProductionShortcuts({
+    const cleanup = registerPosShortcutsListener({
       docStatus: 'PREPARATION',
       confirmedSaleRecord: null,
       onF2: vi.fn(),
@@ -122,17 +81,18 @@ describe('usePosShortcuts Production Keybinding Contract', () => {
       onEscape: vi.fn(),
     });
 
-    const preventDefault = vi.fn();
-    attachedHandler?.({ key: 'F5', target: { tagName: 'BUTTON' }, preventDefault });
-
+    const { preventDefault } = dispatchKeyEvent('F5');
     expect(onF5).toHaveBeenCalledTimes(1);
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+
+    cleanup();
   });
 
-  it('triggers onF9 when F9 is pressed', () => {
+  it('triggers onF9 when F9 key is pressed', () => {
     const onF9 = vi.fn();
-    setupProductionShortcuts({
+    const cleanup = registerPosShortcutsListener({
       docStatus: 'CONFIRMED',
-      confirmedSaleRecord: { id: 'sale-1' } as any,
+      confirmedSaleRecord: { id: 's-1' } as any,
       onF2: vi.fn(),
       onF3: vi.fn(),
       onF5: vi.fn(),
@@ -140,13 +100,16 @@ describe('usePosShortcuts Production Keybinding Contract', () => {
       onEscape: vi.fn(),
     });
 
-    attachedHandler?.({ key: 'F9', target: { tagName: 'BODY' }, preventDefault: vi.fn() });
+    const { preventDefault } = dispatchKeyEvent('F9');
     expect(onF9).toHaveBeenCalledTimes(1);
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+
+    cleanup();
   });
 
-  it('triggers onEscape when in CONFIRMING state even if in an input', () => {
+  it('triggers onEscape only when in CONFIRMING status', () => {
     const onEscape = vi.fn();
-    setupProductionShortcuts({
+    const cleanup = registerPosShortcutsListener({
       docStatus: 'CONFIRMING',
       confirmedSaleRecord: null,
       onF2: vi.fn(),
@@ -156,10 +119,10 @@ describe('usePosShortcuts Production Keybinding Contract', () => {
       onEscape,
     });
 
-    const preventDefault = vi.fn();
-    attachedHandler?.({ key: 'Escape', target: { tagName: 'INPUT' }, preventDefault });
-
+    const { preventDefault } = dispatchKeyEvent('Escape');
     expect(onEscape).toHaveBeenCalledTimes(1);
     expect(preventDefault).toHaveBeenCalledTimes(1);
+
+    cleanup();
   });
 });

@@ -1,4 +1,4 @@
-﻿export * from './pages/PosPage';
+export * from './pages/PosPage';
 export * from './components/PosHeader';
 export * from './components/PosCustomerSection';
 export * from './components/PosCartTable';
@@ -11,5 +11,6 @@ export * from './hooks/usePosCart';
 export * from './hooks/usePosCustomer';
 export * from './hooks/usePosItemDraft';
 export * from './hooks/usePosShortcuts';
+export * from './hooks/usePosSubmission';
 export * from './utils/posCalculations';
 export * from './types/pos.types';

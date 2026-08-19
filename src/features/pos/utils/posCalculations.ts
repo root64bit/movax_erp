@@ -1,4 +1,5 @@
-﻿import type { Article, Client, SaleItem } from '@/shared/types/domain.types';
+import type { Article, Client, SaleItem } from '@/shared/types/domain.types';
+import { InventoryService } from '@/features/inventory/services/inventory.service';
 
 export const normalizeClientSearch = (value: string): string =>
   value
@@ -80,4 +81,8 @@ export function calculatePosTotals(
 export function calculateChange(paidAmount: number, grandTotal: number): number {
   const diff = paidAmount - grandTotal;
   return diff > 0 ? Math.round((diff + Number.EPSILON) * 100) / 100 : 0;
+}
+
+export function createPosArticleSearchLoader(warehouseId?: string) {
+  return (query: string) => InventoryService.searchProducts(query, warehouseId, 50);
 }
