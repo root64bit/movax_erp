@@ -202,26 +202,39 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
-        <div className="space-y-5">
+      <nav className="flex-1 overflow-y-auto px-0 py-2">
+        <div className="space-y-4">
           {navGroups.map((section) => (
             <div key={section.group}>
-              <p className="px-3 pb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{section.group}</p>
-              <div className="space-y-1">
-                {section.items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(item.id)}
-                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors ${
-                      activeTab === item.id
-                        ? 'bg-[#062b55] font-black text-white shadow-sm dark:bg-[#244f7f]'
-                        : 'font-semibold text-slate-700 hover:bg-slate-100 dark:text-[#cbd0d4] dark:hover:bg-[#252a2d]'
-                    }`}
-                  >
-                    <span className={`material-symbols-outlined text-[19px] ${activeTab === item.id ? 'text-white' : 'text-slate-500 group-hover:text-[#062b55] dark:text-slate-400'}`}>{item.icon}</span>
-                    <span className="truncate">{item.label}</span>
-                  </button>
-                ))}
+              <p className="px-4 pb-1 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">{section.group}</p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => navigate(item.id)}
+                      className={`group relative flex w-full items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#e8f0fe] text-[#001e40] dark:bg-[#1a2c42] dark:text-[#a7c8ff] font-black border-r-[4px] border-[#001e40] dark:border-[#70a6ff]'
+                          : 'font-bold text-slate-700 hover:bg-slate-100/80 dark:text-[#cbd0d4] dark:hover:bg-[#252a2d]'
+                      }`}
+                    >
+                      <div
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border ${
+                          isActive
+                            ? 'border-[#001e40] bg-white text-[#001e40] dark:border-[#70a6ff] dark:bg-[#0f1d2d] dark:text-[#a7c8ff] shadow-2xs'
+                            : 'border-slate-400/80 bg-white text-slate-600 group-hover:border-[#001e40] group-hover:text-[#001e40] dark:border-slate-600 dark:bg-[#15191b] dark:text-slate-300'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[15px]">{item.icon}</span>
+                      </div>
+                      <span className={`truncate text-[13px] ${isActive ? 'font-black text-[#001e40] dark:text-[#a7c8ff]' : 'font-bold text-slate-700 dark:text-slate-200'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
