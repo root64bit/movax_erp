@@ -119,6 +119,32 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
     license: ['settings.manage'],
   };
 
+  const tabToScope = useCallback((tab: string): AppDataScope => {
+    switch (tab) {
+      case 'sales':
+      case 'pos':
+      case 'quotation':
+        return 'sales';
+      case 'inventory':
+      case 'movements':
+      case 'purchases':
+        return 'stock';
+      case 'documents':
+      case 'accounts':
+        return 'documents';
+      case 'entities':
+        return 'entities';
+      case 'admin':
+      case 'administration':
+        return 'users';
+      case 'reports':
+        return 'reports';
+      case 'dashboard':
+      default:
+        return 'dashboard';
+    }
+  }, []);
+
   const applyAppData = useCallback((data: any) => {
     if (data.articles) setArticles(data.articles);
     if (data.clients) setClients(data.clients);
@@ -135,7 +161,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
     if (data.systemMode) setSystemMode(data.systemMode);
   }, []);
 
-  const refreshData = useCallback(async (scope: AppDataScope = 'all') => {
+  const refreshData = useCallback(async (scope: AppDataScope = 'initial') => {
     setDataLoading(true);
     try {
       const data = await loadAppData(scope);
@@ -147,9 +173,33 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
     }
   }, [applyAppData]);
 
+  // Initial scoped initialization: loads core metadata then active tab slice
   useEffect(() => {
-    void refreshData();
-  }, [refreshData]);
+    let isMounted = true;
+    async function initLifecycle() {
+      setDataLoading(true);
+      try {
+        const initData = await loadAppData('initial');
+        if (!isMounted) return;
+        applyAppData(initData);
+
+        const activeScope = tabToScope(activeTab);
+        if (activeScope !== 'dashboard' && activeScope !== 'initial') {
+          const tabData = await loadAppData(activeScope);
+          if (!isMounted) return;
+          applyAppData(tabData);
+        }
+      } catch (err) {
+        console.error('Failed to initialize app scope', err);
+      } finally {
+        if (isMounted) setDataLoading(false);
+      }
+    }
+    void initLifecycle();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, applyAppData, tabToScope]);
 
   const changeTab = useCallback((nextTab: string) => {
     setActiveTab(nextTab);
@@ -157,7 +207,11 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
     if (window.location.pathname !== targetPath) {
       window.history.pushState({}, '', targetPath);
     }
-  }, []);
+    const scope = tabToScope(nextTab);
+    if (scope !== 'dashboard' && scope !== 'initial') {
+      void refreshData(scope);
+    }
+  }, [refreshData, tabToScope]);
 
   const hasAccess = useCallback((tab: string) => {
     if (roles.includes('SUPER_ADMIN') || roles.includes('ADMIN')) return true;
@@ -181,7 +235,8 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
       activeWarehouseId={userContext?.activeWarehouse?.id}
       onSelectWarehouse={async (id) => {
         await AdministrationService.setOperationalContext(id);
-        await refreshData('all');
+        const scope = tabToScope(activeTab);
+        await refreshData(scope);
       }}
       onSignOut={() => void AuthService.signOut()}
       permissions={permissions}
@@ -434,7 +489,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
             }}
             onSaveCompanySettings={async (settings) => {
               await QuotationService.saveCompanyQuotationSettings(company.id || 'default-company', settings as any);
-              await refreshData('all');
+              await refreshData('initial');
             }}
           />
         )}

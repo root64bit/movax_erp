@@ -882,7 +882,7 @@ import {
   DEMO_PAYMENT_METHODS,
 } from '@/shared/mock';
 
-export type AppDataScope = 'all' | 'core' | 'sales' | 'stock' | 'documents' | 'entities' | 'users' | 'reports' | 'after-sale';
+export type AppDataScope = 'all' | 'core' | 'initial' | 'dashboard' | 'sales' | 'stock' | 'documents' | 'entities' | 'users' | 'reports' | 'after-sale';
 
 export async function loadAppData(scope: AppDataScope = 'all'): Promise<AppData> {
   if (env.useMockData) {
