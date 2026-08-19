@@ -570,7 +570,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                     </div>
                     <div>
                       <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
-                        Pedido Push Enviado para o seu Telemóvel!
+                        Pedido de Pagamento Enviado para o seu Telemóvel!
                       </h3>
                       <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                         Enviámos um pedido de pagamento de <strong className="text-red-700 dark:text-red-400 font-black">{priceDue.toLocaleString('pt-MZ')} MT</strong> para o número <strong className="font-mono">{normalizeMsisdn(mpesaNumber)}</strong>.

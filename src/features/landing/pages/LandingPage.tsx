@@ -87,7 +87,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pagamentos Rápidos</span>
               <p className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-blue-600 text-base">phone_android</span>
-                M-Pesa Push & Cartões POS
+                M-Pesa & Cartões POS
               </p>
             </div>
             <div className="space-y-1">
@@ -298,7 +298,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     <li className="flex items-center gap-2 font-bold text-slate-900 dark:text-slate-100">✓ Até 7 Utilizadores</li>
                     <li className="flex items-center gap-2 font-bold text-slate-900 dark:text-slate-100">✓ 1 Sucursal & 2 Armazéns</li>
                     <li className="flex items-center gap-2 font-bold text-slate-900 dark:text-slate-100">✓ 2 Caixas POS</li>
-                    <li className="flex items-center gap-2">✓ M-Pesa Push USSD Automático</li>
+                    <li className="flex items-center gap-2">✓ Pagamento M-Pesa Automático</li>
                     <li className="flex items-center gap-2">✓ Transferências de Stock</li>
                   </ul>
                 </div>
