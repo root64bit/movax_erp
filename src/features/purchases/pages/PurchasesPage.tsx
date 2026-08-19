@@ -8,6 +8,7 @@ import type {
   ReferenceOption,
 } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
+import { Pagination } from '@/components/Pagination';
 import { ArticleSearchSelect } from '@/features/inventory/components/ArticleSearchSelect';
 import { InventoryService } from '@/features/inventory/services/inventory.service';
 import { exportToExcel, exportToWord, exportToPdf } from '@/shared/utils/export.utils';
@@ -103,6 +104,9 @@ export const Purchases: React.FC<PurchasesProps> = ({
     }
   }, [supplierId, suppliers]);
 
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(25);
+
   const supplierDocuments = useMemo(() => {
     let list = documents.filter((document) => document.typeCode.startsWith('SUPPLIER_'));
     if (dateFilter) {
@@ -110,6 +114,17 @@ export const Purchases: React.FC<PurchasesProps> = ({
     }
     return list;
   }, [documents, dateFilter]);
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [dateFilter, historyPageSize]);
+
+  const totalHistoryPages = Math.max(1, Math.ceil(supplierDocuments.length / historyPageSize));
+  const safeHistoryPage = Math.min(historyPage, totalHistoryPages);
+  const pagedSupplierDocuments = useMemo(
+    () => supplierDocuments.slice((safeHistoryPage - 1) * historyPageSize, safeHistoryPage * historyPageSize),
+    [supplierDocuments, safeHistoryPage, historyPageSize]
+  );
 
   // Totals in MZN and Foreign Currency
   const totalMzn = items.reduce((sum, item) => sum + item.total, 0);
@@ -833,7 +848,7 @@ export const Purchases: React.FC<PurchasesProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#c3c6d1] dark:divide-[#43474f]">
-              {supplierDocuments.map((document) => (
+              {pagedSupplierDocuments.map((document) => (
                 <tr key={document.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e]">
                   <td className="p-3 font-mono font-bold text-[#003366] dark:text-[#a7c8ff]">{document.displayNumber}</td>
                   <td className="p-3">{document.partyName}</td>
@@ -858,9 +873,19 @@ export const Purchases: React.FC<PurchasesProps> = ({
             </tbody>
           </table>
         </div>
-        {supplierDocuments.length === 0 && (
+        {pagedSupplierDocuments.length === 0 && (
           <p className="p-6 text-center text-sm text-[#737780]">Sem documentos de fornecedor para a data selecionada.</p>
         )}
+        <div className="border-t border-[#c3c6d1] bg-slate-50/70 px-3 dark:border-[#43474f] dark:bg-[#1b2023] mt-2">
+          <Pagination
+            currentPage={safeHistoryPage}
+            totalItems={supplierDocuments.length}
+            pageSize={historyPageSize}
+            onPageChange={setHistoryPage}
+            onPageSizeChange={setHistoryPageSize}
+            pageSizeOptions={[15, 25, 50, 100]}
+          />
+        </div>
       </section>
     </div>
   );

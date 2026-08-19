@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Article, DocumentRecord, SaleInvoice, SaleItem } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
+import { Pagination } from '@/components/Pagination';
 import { ArticleSearchSelect } from '@/features/inventory/components/ArticleSearchSelect';
 import { requireSupabase } from '@/integrations/supabase/client';
 import { calculateDocumentLine, calculateDocumentTotals, recalculateSaleItem, recalculateSaleItems } from '@/lib/documentCalculations';
@@ -70,6 +71,9 @@ export function Documents({
     }
   }, [editItems, editGeneralDiscount, editingDoc]);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return documents.filter((document) => {
@@ -101,6 +105,14 @@ export function Documents({
       );
     });
   }, [documents, partyType, search, status, typeFilter, isCashier]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, partyType, status, typeFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedDocuments = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const handleExecuteCancel = async () => {
     if (!cancellingDoc || !cancelReason.trim() || isSubmittingCancel) return;
@@ -349,7 +361,7 @@ export function Documents({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#c3c6d1] dark:divide-[#43474f]">
-              {filtered.map((document) => {
+              {pagedDocuments.map((document) => {
                 const printable = sales.find((sale) => sale.id === document.id);
                 const isAdviceDoc = document.typeCode === 'CUSTOMER_CREDIT_NOTE' || document.typeCode === 'SUPPLIER_CREDIT_ADVICE';
                 const canCancelThisDoc = canCancelAdvice && isAdviceDoc && document.status === 'CONFIRMED';
@@ -456,7 +468,7 @@ export function Documents({
                   </tr>
                 );
               })}
-              {filtered.length === 0 && (
+              {pagedDocuments.length === 0 && (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-sm text-[#737780]">
                     Nenhum documento corresponde aos filtros.
@@ -465,6 +477,16 @@ export function Documents({
               )}
             </tbody>
           </table>
+        </div>
+        <div className="border-t border-[#c3c6d1] bg-slate-50/70 px-3 dark:border-[#43474f] dark:bg-[#1b2023]">
+          <Pagination
+            currentPage={safePage}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[15, 25, 50, 100]}
+          />
         </div>
       </section>
 

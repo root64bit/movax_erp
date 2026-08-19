@@ -1,4 +1,4 @@
-﻿import { requireSupabase } from '@/integrations/supabase/client';
+import { requireSupabase } from '@/integrations/supabase/client';
 import { numberValue } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
@@ -18,6 +18,56 @@ export interface DocumentUpdatePayload {
 }
 
 export const DocumentsService = {
+  async fetchDocumentsPage(params: {
+    limit?: number;
+    offset?: number;
+  }): Promise<DocumentRecord[]> {
+    const client = requireSupabase();
+    const limit = Math.min(Math.max(params.limit ?? 25, 1), 200);
+    const offset = Math.max(params.offset ?? 0, 0);
+
+    const { data, error } = await client.rpc('get_operational_documents_page_v2', {
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    if (error) {
+      logger.error('Failed to fetch operational documents page', error, { module: 'DocumentsService' });
+      throw new AppError(error.message || 'Falha ao carregar documentos.');
+    }
+
+    return ((data || []) as any[]).map((row: any) => {
+      const isCustomer = row.document_types?.party_type === 'CUSTOMER';
+      const isSupplier = row.document_types?.party_type === 'SUPPLIER';
+      const party = isCustomer ? row.customers : isSupplier ? row.suppliers : null;
+
+      return {
+        id: String(row.id),
+        displayNumber: String(row.display_number ?? ''),
+        externalReference: row.external_reference ? String(row.external_reference) : undefined,
+        warehouseId: row.warehouse_id ? String(row.warehouse_id) : undefined,
+        date: String(row.document_date || row.created_at || ''),
+        dueDate: String(row.due_date || row.document_date || row.created_at || ''),
+        createdAt: String(row.created_at || ''),
+        sourceDocumentId: row.source_document_id ? String(row.source_document_id) : undefined,
+        status: String(row.status ?? 'DRAFT'),
+        partyType: (row.document_types?.party_type ?? 'CUSTOMER') as 'CUSTOMER' | 'SUPPLIER',
+        partyId: String(party?.id || row.customer_id || row.supplier_id || ''),
+        partyCode: party?.customer_number || party?.supplier_number || '',
+        partyName: party?.name || 'Cliente Pontual',
+        typeCode: String(row.document_types?.code ?? 'CUSTOMER_INVOICE'),
+        typeName: String(row.document_types?.name ?? 'Factura'),
+        salespersonName: row.salesperson_name ? String(row.salesperson_name) : undefined,
+        netTotal: numberValue(row.net_total),
+        taxTotal: numberValue(row.tax_total),
+        grandTotal: numberValue(row.grand_total),
+        paidAmount: numberValue(row.amount_paid),
+        outstandingAmount: numberValue(row.outstanding_amount),
+        notes: row.notes ? String(row.notes) : undefined,
+      };
+    });
+  },
+
   async updateDocumentDetails(documentId: string, payload: DocumentUpdatePayload): Promise<void> {
     const client = requireSupabase();
     const lines = payload.items ? recalculateSaleItems(payload.items) : undefined;

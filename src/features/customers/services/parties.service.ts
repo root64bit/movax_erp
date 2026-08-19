@@ -1,7 +1,8 @@
 import { requireSupabase } from '@/integrations/supabase/client';
+import { numberValue } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
-import type { PartyInput } from '@/shared/types/domain.types';
+import type { Client, Supplier, PartyInput } from '@/shared/types/domain.types';
 
 export const PartiesService = {
   async createCustomer(input: PartyInput): Promise<void> {
@@ -100,5 +101,115 @@ export const PartiesService = {
       logger.error('Failed to update party', error, { module: 'PartiesService', partyId, type });
       throw new AppError(error.message || `Falha ao actualizar ${type === 'customer' ? 'cliente' : 'fornecedor'}.`);
     }
+  },
+
+  async fetchCustomersPage(params: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ rows: Client[]; totalCount: number }> {
+    const client = requireSupabase();
+    const limit = Math.min(Math.max(params.limit ?? 25, 1), 100);
+    const offset = Math.max(params.offset ?? 0, 0);
+
+    let query = client
+      .from('customers')
+      .select('id,customer_number,name,tax_number,telephone,email,current_balance,customer_addresses(address_line_1,is_primary)', { count: 'exact' })
+      .eq('active', true);
+
+    if (params.search?.trim()) {
+      const term = params.search.trim();
+      query = query.or(`name.ilike.%${term}%,customer_number.ilike.%${term}%,tax_number.ilike.%${term}%,telephone.ilike.%${term}%`);
+    }
+
+    const { data, count, error } = await query
+      .order('name', { ascending: true })
+      .order('id', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      logger.error('Failed to fetch customers page', error, { module: 'PartiesService' });
+      throw new AppError(error.message || 'Falha ao carregar clientes.');
+    }
+
+    const rows: Client[] = (data || []).map((row: any) => {
+      const primaryAddress = Array.isArray(row.customer_addresses)
+        ? row.customer_addresses.find((addr: any) => addr.is_primary)?.address_line_1 ?? row.customer_addresses[0]?.address_line_1
+        : undefined;
+      return {
+        id: String(row.id),
+        code: String(row.customer_number ?? ''),
+        number: String(row.customer_number ?? ''),
+        name: String(row.name ?? ''),
+        nuit: row.tax_number ? String(row.tax_number) : '',
+        phone: row.telephone ? String(row.telephone) : '',
+        email: row.email ? String(row.email) : '',
+        address: primaryAddress || '',
+        pendingBalance: numberValue(row.current_balance),
+      };
+    });
+
+    return { rows, totalCount: count ?? rows.length };
+  },
+
+  async fetchSuppliersPage(params: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ rows: Supplier[]; totalCount: number }> {
+    const client = requireSupabase();
+    const limit = Math.min(Math.max(params.limit ?? 25, 1), 100);
+    const offset = Math.max(params.offset ?? 0, 0);
+
+    let query = client
+      .from('suppliers')
+      .select('id,supplier_number,name,tax_number,telephone,email,contact_person,current_balance,supplier_addresses(address_line_1,is_primary)', { count: 'exact' })
+      .eq('active', true);
+
+    if (params.search?.trim()) {
+      const term = params.search.trim();
+      query = query.or(`name.ilike.%${term}%,supplier_number.ilike.%${term}%,tax_number.ilike.%${term}%,telephone.ilike.%${term}%`);
+    }
+
+    const { data, count, error } = await query
+      .order('name', { ascending: true })
+      .order('id', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      logger.error('Failed to fetch suppliers page', error, { module: 'PartiesService' });
+      throw new AppError(error.message || 'Falha ao carregar fornecedores.');
+    }
+
+    const rows: Supplier[] = (data || []).map((row: any) => {
+      const primaryAddress = Array.isArray(row.supplier_addresses)
+        ? row.supplier_addresses.find((addr: any) => addr.is_primary)?.address_line_1 ?? row.supplier_addresses[0]?.address_line_1
+        : undefined;
+      return {
+        id: String(row.id),
+        code: String(row.supplier_number ?? ''),
+        number: String(row.supplier_number ?? ''),
+        name: String(row.name ?? ''),
+        nuit: row.tax_number ? String(row.tax_number) : '',
+        phone: row.telephone ? String(row.telephone) : '',
+        email: row.email ? String(row.email) : '',
+        address: primaryAddress || '',
+        contactPerson: row.contact_person ? String(row.contact_person) : '',
+        totalPurchases: numberValue(row.current_balance),
+        pendingBalance: numberValue(row.current_balance),
+      };
+    });
+
+    return { rows, totalCount: count ?? rows.length };
+  },
+
+  async searchCustomers(query: string, limit = 20): Promise<Client[]> {
+    const res = await this.fetchCustomersPage({ search: query, limit, offset: 0 });
+    return res.rows;
+  },
+
+  async searchSuppliers(query: string, limit = 20): Promise<Supplier[]> {
+    const res = await this.fetchSuppliersPage({ search: query, limit, offset: 0 });
+    return res.rows;
   },
 };

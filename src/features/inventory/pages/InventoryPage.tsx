@@ -184,7 +184,7 @@ export const Inventory: React.FC<InventoryProps> = ({
       }).finally(() => {
         if (!cancelled) setCatalogLoading(false);
       });
-    }, 250);
+    }, 300);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);

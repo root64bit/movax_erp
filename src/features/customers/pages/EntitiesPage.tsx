@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Client, Supplier, DocumentRecord, LedgerRecord, PartyInput } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
+import { Pagination } from '@/components/Pagination';
 import { FinancialAdviceDocument } from '@/features/documents/components/FinancialAdviceDocument';
 
 export interface EntitiesProps {
@@ -55,6 +56,24 @@ export const Entities: React.FC<EntitiesProps> = ({
   });
   const [partySaving, setPartySaving] = useState(false);
   const [partyError, setPartyError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [mainTab, subTab, pageSize]);
+
+  const currentListLength = mainTab === 'CLIENTES' ? clients.length : suppliers.length;
+  const totalPages = Math.max(1, Math.ceil(currentListLength / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedClients = useMemo(
+    () => clients.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [clients, safePage, pageSize]
+  );
+  const pagedSuppliers = useMemo(
+    () => suppliers.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [suppliers, safePage, pageSize]
+  );
 
   const openPartyEditor = (type: 'customer' | 'supplier', party: Client | Supplier) => {
     setEditingParty({ type, id: party.id });
@@ -273,7 +292,7 @@ export const Entities: React.FC<EntitiesProps> = ({
               </thead>
               <tbody className="divide-y divide-[#c3c6d1] dark:divide-[#43474f]">
                 {mainTab === 'CLIENTES'
-                  ? clients.map((client) => (
+                  ? pagedClients.map((client) => (
                       <tr key={client.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e] transition-colors">
                         <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-bold text-[#191c1d] dark:text-white">
                           <div className="flex items-center space-x-2">
@@ -307,7 +326,7 @@ export const Entities: React.FC<EntitiesProps> = ({
                         )}
                       </tr>
                     ))
-                  : suppliers.map((sup) => (
+                  : pagedSuppliers.map((sup) => (
                       <tr key={sup.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e] transition-colors">
                         <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-bold text-[#191c1d] dark:text-white">
                           <div className="flex items-center space-x-2">
@@ -343,6 +362,16 @@ export const Entities: React.FC<EntitiesProps> = ({
                     ))}
               </tbody>
             </table>
+          </div>
+          <div className="border-t border-[#c3c6d1] bg-slate-50/70 px-3 dark:border-[#43474f] dark:bg-[#1b2023]">
+            <Pagination
+              currentPage={safePage}
+              totalItems={currentListLength}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[15, 25, 50, 100]}
+            />
           </div>
         </section>
       )}
