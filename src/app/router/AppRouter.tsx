@@ -8,6 +8,8 @@ import { requireSupabase } from '@/integrations/supabase/client';
 import { logger } from '@/shared/lib/logger';
 import type { UserContext } from '@/shared/types/domain.types';
 
+import { SuperAdminRoutes } from '@/features/superadmin/SuperAdminRoutes';
+
 export const AppRouter: React.FC = () => {
   const { session, checking, signOut } = useAuth();
   const [userContext, setUserContext] = useState<UserContext | null>(null);
@@ -142,6 +144,9 @@ export const AppRouter: React.FC = () => {
     return <PageLoader message="A iniciar Movax ERP..." />;
   }
 
+  const isSuperAdmin = userContext?.roles?.some(r => r.code === 'SUPER_ADMIN');
+  const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
+
   return (
     <PublicRoutes
       session={session}
@@ -153,7 +158,11 @@ export const AppRouter: React.FC = () => {
         await loadUserContext();
       }}
     >
-      <PrivateRoutes userContext={userContext} onRefreshData={loadUserContext} />
+      {isSuperAdmin && isSuperAdminRoute ? (
+        <SuperAdminRoutes userLabel={userContext?.fullName} />
+      ) : (
+        <PrivateRoutes userContext={userContext} onRefreshData={loadUserContext} />
+      )}
     </PublicRoutes>
   );
 };

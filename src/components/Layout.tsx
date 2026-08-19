@@ -105,6 +105,7 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'reports', label: 'Relatórios', icon: 'analytics', group: 'Principal', visible: permissions.length === 0 || has('reports.read', 'reports.sales', 'reports.stock') },
       { id: 'license', label: 'Plano e Licença', icon: 'card_membership', group: 'Gestão', visible: permissions.length === 0 || has('settings.manage') },
       { id: 'administration', label: 'Administração', icon: 'settings', group: 'Gestão', visible: permissions.length === 0 || has('settings.manage', 'users.manage') },
+      { id: 'superadmin', label: 'Painel Super Admin', icon: 'admin_panel_settings', group: 'Gestão', visible: roleLabel?.includes('SUPER_ADMIN') },
     ].filter((item) => item.visible),
     [permissions],
   );
@@ -135,6 +136,10 @@ export const Layout: React.FC<LayoutProps> = ({
   }, [menuOpen]);
 
   const navigate = (tab: string) => {
+    if (tab === 'superadmin') {
+      window.location.href = '/superadmin';
+      return;
+    }
     setActiveTab(tab);
     setShowNotifications(false);
     window.history.pushState({ tab }, '', `/${tab === 'dashboard' ? '' : tab}`);
