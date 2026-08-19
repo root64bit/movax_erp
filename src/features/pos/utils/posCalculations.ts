@@ -1,4 +1,4 @@
-﻿import type { Client, SaleItem } from '@/shared/types/domain.types';
+﻿import type { Article, Client, SaleItem } from '@/shared/types/domain.types';
 
 export const normalizeClientSearch = (value: string): string =>
   value
@@ -13,6 +13,16 @@ export const isWalkInClient = (client: Client): boolean => {
   const name = normalizeClientSearch(client.name || '');
   return code === '1' || name.includes('pontual') || name.includes('cliente final') || name.includes('consumidor');
 };
+
+export function getArticlePriceWithIva(art: Article): number {
+  if (art.sellPriceWithIva && art.sellPriceWithIva > 0) {
+    return art.sellPriceWithIva;
+  }
+  if (art.sellPrice && art.sellPrice > 0) {
+    return Math.round(art.sellPrice * (1 + (art.taxRate ?? 16) / 100) * 100) / 100;
+  }
+  return 0;
+}
 
 export interface CalculatedTotals {
   subtotal: number;
