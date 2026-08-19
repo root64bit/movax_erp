@@ -350,11 +350,20 @@ export const SubscriptionService = {
     addonCode: string,
     paymentMethod: 'M_PESA' | 'BANK_TRANSFER',
     mpesaNumber?: string,
+    bankReference?: string,
+    receiptFileName?: string,
   ): Promise<void> {
     const client = requireSupabase();
     const catalogItem = AVAILABLE_ADDONS_CATALOG.find((a) => a.code === addonCode);
     const amount = catalogItem?.priceMonthly || 1500;
-    const ref = paymentMethod === 'M_PESA' ? `MPESA-ADDON-${mpesaNumber || '84XXXXXXX'}` : 'REF-BANCO-ADDON';
+    const ref =
+      paymentMethod === 'M_PESA'
+        ? `MPESA-ADDON-${mpesaNumber || '84XXXXXXX'}`
+        : bankReference?.trim()
+        ? `TRF-BANCO-${bankReference.trim()}`
+        : receiptFileName
+        ? `RECIBO-${receiptFileName}`
+        : 'REF-BANCO-ADDON';
 
     // 1. Activate addon for company
     await client.from('company_addons').upsert(
@@ -391,12 +400,21 @@ export const SubscriptionService = {
     notes?: string;
     paymentMethod: 'M_PESA' | 'BANK_TRANSFER';
     mpesaNumber?: string;
+    bankReference?: string;
+    receiptFileName?: string;
   }): Promise<void> {
     const client = requireSupabase();
     const catalogItem = AVAILABLE_ADDONS_CATALOG.find((a) => a.code === params.addonCode);
     const setupFee = catalogItem?.setupFee || 3500;
     const monthlyFee = catalogItem?.priceMonthly || 1500;
-    const ref = params.paymentMethod === 'M_PESA' ? `MPESA-SETUP-${params.mpesaNumber || '84XXXXXXX'}` : 'REF-BANCO-SETUP';
+    const ref =
+      params.paymentMethod === 'M_PESA'
+        ? `MPESA-SETUP-${params.mpesaNumber || '84XXXXXXX'}`
+        : params.bankReference?.trim()
+        ? `TRF-SETUP-${params.bankReference.trim()}`
+        : params.receiptFileName
+        ? `RECIBO-${params.receiptFileName}`
+        : 'REF-BANCO-SETUP';
 
     // 1. Insert technical setup request
     const { error: reqErr } = await client.from('technical_setup_requests').insert({
