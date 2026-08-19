@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>Movax ERP / POS — Catálogo Completo de Funcionalidades e Add-ons</title>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    @page Section1 {
+      size: 595.3pt 841.9pt; /* A4 */
+      margin: 42.5pt 42.5pt 42.5pt 42.5pt;
+      mso-header-margin: 35.4pt;
+      mso-footer-margin: 35.4pt;
+      mso-paper-source: 0;
+    }
+    div.Section1 { page: Section1; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a202c;
+      background-color: #ffffff;
+    }
+    h1 {
+      font-size: 22pt;
+      font-weight: 800;
+      color: #001e40;
+      margin-top: 24pt;
+      margin-bottom: 8pt;
+      border-bottom: 2.5pt solid #001e40;
+      padding-bottom: 4pt;
+    }
+    h2 {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #003366;
+      margin-top: 18pt;
+      margin-bottom: 6pt;
+      border-bottom: 1pt solid #cbd5e1;
+      padding-bottom: 3pt;
+    }
+    h3 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 12pt;
+      margin-bottom: 4pt;
+    }
+    p, li {
+      margin-top: 0;
+      margin-bottom: 6pt;
+      text-align: justify;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8pt;
+      margin-bottom: 12pt;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1pt solid #cbd5e1;
+      padding: 6pt 8pt;
+      vertical-align: top;
+    }
+    th {
+      background-color: #001e40;
+      color: #ffffff;
+      font-weight: 700;
+      text-align: left;
+    }
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2pt 6pt;
+      border-radius: 4pt;
+      font-size: 8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-instant {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 0.5pt solid #86efac;
+    }
+    .badge-tech {
+      background-color: #fef3c7;
+      color: #b45309;
+      border: 0.5pt solid #fcd34d;
+    }
+    .cover {
+      text-align: center;
+      padding-top: 40pt;
+      padding-bottom: 40pt;
+      border-bottom: 3pt solid #001e40;
+      margin-bottom: 30pt;
+    }
+    .cover-title {
+      font-size: 26pt;
+      font-weight: 900;
+      color: #001e40;
+      margin-bottom: 6pt;
+    }
+    .cover-subtitle {
+      font-size: 13pt;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 20pt;
+    }
+    .cover-meta {
+      font-size: 10pt;
+      color: #64748b;
+    }
+    .callout {
+      background-color: #eff6ff;
+      border-left: 3.5pt solid #1d4ed8;
+      padding: 8pt 12pt;
+      margin: 10pt 0;
+      font-size: 9.5pt;
+    }
+  </style>
+</head>
+<body>
+<div class="Section1">
+
+  <!-- CAPA CORPORATIVA -->
+  <div class="cover">
+    <div class="cover-title">MOVAX ERP / POS MULTI-TENANT</div>
+    <div class="cover-subtitle">Manual Técnico & Catálogo Completo de Funcionalidades, Módulos e Add-ons SaaS</div>
+    <div class="cover-meta">
+      <strong>MM Global Techno Solutions, Lda.</strong> | Versão: 2.4.0 Enterprise<br>
+      Mercado: Moçambique (Fiscalidade AT, Multimoeda, M-Pesa C2B e Offline-First)<br>
+      Data de Emissão: Agosto de 2026
+    </div>
+  </div>
+
+  <!-- 1. VISÃO GERAL -->
+  <h1>1. Visão Geral da Plataforma</h1>
+  <p>
+    O <strong>Movax ERP / POS</strong> é uma solução de gestão empresarial de última geração desenvolvida em arquitetura Cloud-Native Multi-Tenant, desenhada especificamente para empresas comerciais, importadores, retalhistas, supermercados e prestadores de serviços no mercado moçambicano e regional.
+  </p>
+  <p>
+    A plataforma combina a flexibilidade da nuvem com alta disponibilidade operacional, permitindo a operação contínua tanto através de navegadores web modernos como em modo <strong>Offline-First</strong> através do agente desktop Windows, garantindo que as vendas de balcão e frentes de caixa nunca param, mesmo perante cortes de eletricidade ou falhas de conectividade de internet.
+  </p>
+
+  <div class="callout">
+    <strong>Destaques da Arquitetura:</strong>
+    <ul>
+      <li><strong>Isolamento Multi-Tenant Rigoroso:</strong> Autenticação protegida por <em>Tenant ID de 4 Dígitos</em> (ex: 1001), garantindo segregação lógica estrita de dados entre empresas clientes.</li>
+      <li><strong>Legislação Moçambicana:</strong> Emissão de faturas (VD, FT), recibos (RC), notas de débito/crédito, guias de transporte (GT) e comunicação com a Autoridade Tributária de Moçambique.</li>
+      <li><strong>Integração M-Pesa C2B:</strong> Recebimentos automáticos por Push STK com liquidação imediata e conciliação bancária multicanais (BIM, BCI, Standard Bank, Moza, Absa).</li>
+    </ul>
+  </div>
+
+  <!-- 2. ARQUITETURA MULTI-TENANT & LOGIN -->
+  <h1>2. Autenticação & Isolamento por Tenant ID (4 Dígitos)</h1>
+  <p>
+    Para conciliar a simplicidade de operação no ponto de venda (POS) com o isolamento corporativo rigoroso, o Movax ERP implementa um sistema de login baseado em 3 campos:
+  </p>
+  <ol>
+    <li><strong>Código da Empresa (Tenant ID):</strong> Identificador numérico exclusivo de 4 dígitos (ex: <code>1001</code> para <em>Casa de Pneus, Lda.</em>). Impede que colaboradores de empresas distintas cruzem acessos.</li>
+    <li><strong>Nome de Utilizador / Email:</strong> Suporta tanto usernames curtos para caixas de loja (ex: <code>caixa</code>, <code>vendedor1</code>) como emails corporativos completos para gestores.</li>
+    <li><strong>Palavra-passe / PIN:</strong> Credencial encriptada de acesso.</li>
+  </ol>
+
+  <!-- 3. MÓDULOS PRINCIPAIS DO SISTEMA -->
+  <h1>3. Módulos Centrais do Sistema</h1>
+
+  <h2>3.1. Frente de Caixa (POS) & Vendas</h2>
+  <ul>
+    <li><strong>Interface de Alta Velocidade:</strong> Desenvolvida para operação com ecrã tátil, teclado ou leitor de código de barras físico.</li>
+    <li><strong>Tipos de Documento Suportados:</strong> Venda a Dinheiro (VD), Fatura (FT), Fatura Pró-Forma (FP) e Cotações.</li>
+    <li><strong>Multi-Meios de Pagamento:</strong> Pagamentos repartidos (ex: parte em Dinheiro, parte em M-Pesa e parte em Cartão POS).</li>
+    <li><strong>Gestão de Turnos & Fecho Cego:</strong> Abertura de caixa com fundo de maneio, registo de sangrias/suprimentos e fecho cego obrigatório (o operador introduz o valor em caixa antes de ver o relatório do sistema).</li>
+  </ul>
+
+  <h2>3.2. Artigos, Gestão de Stock & Rastreabilidade</h2>
+  <ul>
+    <li><strong>Estrutura de Catálogo:</strong> Código interno, Código de Barras (EAN-13), Referência do Fabricante, Categoria, Marca, Unidade de Medida e IVA.</li>
+    <li><strong>Custeio e Métodos de Valorização Configuráveis:</strong>
+      <ul>
+        <li><strong>PMP (Preço Médio Ponderado):</strong> Método padrão de atualização contínua do custo médio.</li>
+        <li><strong>FIFO (First In, First Out):</strong> As primeiras unidades a entrar no armazém são as primeiras a ser faturadas/baixadas (garante rotação de produtos e cálculo de lucro com base nos custos mais antigos).</li>
+        <li><strong>LIFO (Last In, First Out):</strong> As últimas unidades a entrar são as primeiras a sair (ideal para produtos não perecíveis em períodos de alta inflação).</li>
+      </ul>
+    </li>
+    <li><strong>Rastreabilidade por Lote (Batch) e Data de Validade (Expiry):</strong> Alertas de produtos a expirar e controlo rigoroso de proveniência.</li>
+    <li><strong>Números de Série Unitários:</strong> Rastreio de cada unidade física individual (essencial para pneus, baterias, equipamentos eletrónicos e maquinaria).</li>
+  </ul>
+
+  <h2>3.3. Compras a Fornecedores & Multimoeda</h2>
+  <ul>
+    <li><strong>Gestão de Moedas Estrangeiras:</strong> Registo de faturas em <strong>MZN, USD, ZAR e EUR</strong>.</li>
+    <li><strong>Câmbio Manual Editável:</strong> Possibilidade de fixar a taxa de câmbio negociada diretamente no documento de compra (ex: 1 USD = 63.85 MZN).</li>
+    <li><strong>Conversão em Tempo Real:</strong> Lançamento automático das mercadorias em Meticais no inventário com retenção do custo em moeda de origem na conta corrente do fornecedor.</li>
+  </ul>
+
+  <h2>3.4. Movimentações & Transferências entre Armazéns</h2>
+  <ul>
+    <li><strong>Guias de Entrada e Saída:</strong> Regularização de quebras, consumos internos e ajustes de inventário.</li>
+    <li><strong>Transferências em Trânsito:</strong> Emissão de Guia de Transporte, estado "Em Trânsito" e conferência cega/confirmação pelo armazém destinatário.</li>
+  </ul>
+
+  <h2>3.5. Financeiro, Contas Correntes & Baixa de Banco</h2>
+  <ul>
+    <li><strong>Contas Correntes de Clientes e Fornecedores:</strong> Extratos de conta, saldos pendentes, limite de crédito e controlo de prazos de vencimento.</li>
+    <li><strong>Baixa de Banco (Reconciliação Bancária):</strong> Lançamento de extratos dos bancos comerciais moçambicanos (Millennium BIM, BCI, Standard Bank, Moza, Absa) com liquidação atómica de faturas pendentes.</li>
+    <li><strong>Recibos Atómicos:</strong> Emissão de recibo de quitação (RC) com distribuição automática de pagamentos por faturas antigas.</li>
+  </ul>
+
+  <h2>3.6. Motor Universal de Exportação</h2>
+  <ul>
+    <li><strong>Exportação em PDF:</strong> Layout gráfico de alta definição pronto para impressão A4 ou envio direto por WhatsApp e email.</li>
+    <li><strong>Exportação em Excel (.xlsx / CSV):</strong> Folhas de cálculo formatadas com codificação UTF-8 BOM e totais analíticos para gabinetes de contabilidade.</li>
+    <li><strong>Exportação em Word (.doc):</strong> Documentos comerciais editáveis para personalização e propostas formais.</li>
+  </ul>
+
+  <!-- 4. CATÁLOGO DE ADD-ONS -->
+  <h1>4. Catálogo Detalhado de Módulos & Add-ons</h1>
+  <p>
+    Os Add-ons permitem expandir a capacidade funcional do ERP de forma modular, dividindo-se entre <strong>Ativação Instantânea</strong> e <strong>Configuração Técnica Assistida</strong>:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Módulo / Add-on</th>
+        <th style="width: 15%;">Tipo de Ativação</th>
+        <th style="width: 20%;">Mensalidade / Setup</th>
+        <th style="width: 40%;">Descrição e Escopo Técnico</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Módulo Business API (Enterprise)</strong></td>
+        <td><span class="badge badge-tech">Configuração Técnica</span></td>
+        <td>2.500 MT/mês<br><small style="color: #64748b;">+ 5.000 MT setup único</small></td>
+        <td>Chaves de API REST, Webhooks e sincronização com e-commerce (Shopify/WooCommerce). <em>Requer equipa técnica para geração de credenciais, testes de webhook e whitelisting de IPs.</em></td>
+      </tr>
+      <tr>
+        <td><strong>Módulo Supermercado & Balanças</strong></td>
+        <td><span class="badge badge-tech">Configuração Técnica</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">+ 3.000 MT setup único</small></td>
+        <td>Frente de caixa rápida com leitura de códigos de barras EAN-13 de balança (peso e preço embutidos). <em>Requer calibração de balanças de balcão (Toledo, Digi, Filizola).</em></td>
+      </tr>
+      <tr>
+        <td><strong>Backup Cloud & Transição de Dados</strong></td>
+        <td><span class="badge badge-tech">Configuração Técnica</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">+ 3.500 MT setup único</small></td>
+        <td>Cópias de segurança contínuas em bucket isolado e assistente de migração. <em>Requer extração, limpeza e importação de dados de sistemas antigos (Primavera, PHC, Excel).</em></td>
+      </tr>
+      <tr>
+        <td><strong>Offline-First & Desktop Sync (Windows)</strong></td>
+        <td><span class="badge badge-tech">Configuração Técnica</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">+ 3.500 MT setup único</small></td>
+        <td>Operação sem internet no POS com replicação automática em nuvem. <em>Requer instalação do agente local Windows e banco de dados SQLite/Postgres de contingência.</em></td>
+      </tr>
+      <tr>
+        <td><strong>Módulo Talho & Desmancho</strong></td>
+        <td><span class="badge badge-tech">Configuração Técnica</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">+ 2.500 MT setup único</small></td>
+        <td>Conversão de carcaças em cortes nobres, rendimento e cálculo de quebras. <em>Requer parametrização de fichas técnicas personalizadas ao negócio.</em></td>
+      </tr>
+      <tr>
+        <td><strong>Rastreabilidade Lotes, Validade & Séries (FIFO/LIFO)</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Controlo de lotes com validade, números de série individuais e métodos de valorização FIFO/LIFO. Ativação imediata no software.</td>
+      </tr>
+      <tr>
+        <td><strong>Baixa de Banco & Reconciliação Bancária</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Importação e conciliação de extratos de contas bancárias (BIM, BCI, Standard Bank, Moza, Absa). Ativação imediata.</td>
+      </tr>
+      <tr>
+        <td><strong>Stock Avançado & Múltiplos Armazéns</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Transferências em trânsito com Guia de Transporte e inventários por armazém.</td>
+      </tr>
+      <tr>
+        <td><strong>Compras & Fornecedores Multimoeda</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Faturas de compras com câmbio manual (USD, ZAR, EUR) e contas correntes de fornecedores.</td>
+      </tr>
+      <tr>
+        <td><strong>Financeiro & Contas Correntes</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>2.000 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Extratos de clientes, liquidações a prazo e recibos com alocação atómica.</td>
+      </tr>
+      <tr>
+        <td><strong>Relatórios & BI Pro</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Margens reais, curva ABC, rentabilidade e exportações analíticas em Excel/Word/PDF.</td>
+      </tr>
+      <tr>
+        <td><strong>Multi-Filial / Sucursais</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>1.500 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Gestão de múltiplas lojas com consolidação centralizada de vendas e saldos.</td>
+      </tr>
+      <tr>
+        <td><strong>Segurança & Auditoria Fina</strong></td>
+        <td><span class="badge badge-instant">Instantâneo</span></td>
+        <td>1.000 MT/mês<br><small style="color: #64748b;">Setup Grátis</small></td>
+        <td>Perfis granulares de permissão por função e trilhas de auditoria para ações críticas.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 5. TABELA COMPARATIVA DE PLANOS SAAS -->
+  <h1>5. Matriz Comparativa de Planos de Subscrição SaaS</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Recurso / Limite</th>
+        <th>STARTER</th>
+        <th>BUSINESS (Popular)</th>
+        <th>PRO</th>
+        <th>ENTERPRISE</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Preço Mensal</strong></td>
+        <td><strong>3.900 MT/mês</strong></td>
+        <td><strong>8.900 MT/mês</strong></td>
+        <td><strong>13.900 MT/mês</strong></td>
+        <td><strong>Sob Consulta</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Preço Anual (15% Desc.)</strong></td>
+        <td>39.780 MT/ano</td>
+        <td>90.780 MT/ano</td>
+        <td>141.780 MT/ano</td>
+        <td>Personalizado</td>
+      </tr>
+      <tr>
+        <td><strong>Utilizadores Incluídos</strong></td>
+        <td>3 Utilizadores</td>
+        <td>7 Utilizadores</td>
+        <td>15 Utilizadores</td>
+        <td>Ilimitados</td>
+      </tr>
+      <tr>
+        <td><strong>Lojas / Sucursais</strong></td>
+        <td>1 Loja</td>
+        <td>1 Loja</td>
+        <td>3 Lojas</td>
+        <td>Ilimitadas</td>
+      </tr>
+      <tr>
+        <td><strong>Armazéns Operacionais</strong></td>
+        <td>1 Armazém</td>
+        <td>2 Armazéns</td>
+        <td>5 Armazéns</td>
+        <td>Ilimitados</td>
+      </tr>
+      <tr>
+        <td><strong>Caixas / Terminais POS</strong></td>
+        <td>1 Caixa</td>
+        <td>2 Caixas</td>
+        <td>5 Caixas</td>
+        <td>Ilimitados</td>
+      </tr>
+      <tr>
+        <td><strong>Compras Multimoeda (USD/ZAR)</strong></td>
+        <td>Add-on Opcional</td>
+        <td><strong>Incluído</strong></td>
+        <td><strong>Incluído</strong></td>
+        <td><strong>Incluído</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Métodos FIFO, LIFO e PMP</strong></td>
+        <td>Apenas PMP</td>
+        <td><strong>Incluído (Configurável)</strong></td>
+        <td><strong>Incluído (Configurável)</strong></td>
+        <td><strong>Incluído (Configurável)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Lotes, Validade & Séries</strong></td>
+        <td>Add-on Opcional</td>
+        <td>Add-on Opcional</td>
+        <td><strong>Incluído</strong></td>
+        <td><strong>Incluído</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Baixa de Banco (Reconciliação)</strong></td>
+        <td>Add-on Opcional</td>
+        <td><strong>Incluído</strong></td>
+        <td><strong>Incluído</strong></td>
+        <td><strong>Incluído</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Exportação PDF, Excel e Word</strong></td>
+        <td>Básico</td>
+        <td><strong>Completo</strong></td>
+        <td><strong>Completo</strong></td>
+        <td><strong>Completo</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Módulo Business API</strong></td>
+        <td>Não Disponível</td>
+        <td>Add-on Opcional</td>
+        <td>Add-on Opcional</td>
+        <td><strong>Incluído (Dedicado)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Backup Cloud Contínuo</strong></td>
+        <td>Add-on (+1.500 MT)</td>
+        <td>Add-on (+1.500 MT)</td>
+        <td>Add-on (+1.500 MT)</td>
+        <td><strong>Incluído (Dedicado)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Suporte Técnico</strong></td>
+        <td>Email (48h)</td>
+        <td>WhatsApp / Email (24h)</td>
+        <td>Prioritário (4h)</td>
+        <td>SLA Dedicado 24/7</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 6. FLUXO DE PAGAMENTO & ATIVAÇÃO -->
+  <h1>6. Fluxos de Pagamento & Ativação de Serviços</h1>
+
+  <h2>6.1. Fluxo de Ativação Instantânea (Self-Service)</h2>
+  <ol>
+    <li>O utilizador gestor acede ao menu <strong>Plano e Licença</strong>.</li>
+    <li>Clica no botão <strong>"Ativar por [X] MT/mês"</strong> no módulo pretendido.</li>
+    <li>Seleciona o método de pagamento:
+      <ul>
+        <li><strong>M-Pesa:</strong> Introduz o número (84/85 xxx xxxx) e recebe o prompt STK no telemóvel para inserir o PIN.</li>
+        <li><strong>Transferência Bancária:</strong> Efetua a transferência para a conta BIM/BCI indicada com o NUIT como referência.</li>
+      </ul>
+    </li>
+    <li>Após a confirmação, o módulo fica ativo de imediato na empresa cliente, atualizando o menu de navegação e as permissões operacionais.</li>
+  </ol>
+
+  <h2>6.2. Fluxo de Configuração Técnica Assistida</h2>
+  <ol>
+    <li>O utilizador clica em <strong>"Solicitar Configuração Técnica"</strong> (ex: Business API, Balanças ou Migração de Dados).</li>
+    <li>O sistema apresenta a discriminação de valores: <em>Mensalidade do Add-on + Taxa Única de Setup</em>.</li>
+    <li>O cliente preenche os dados do responsável técnico, contacto telefónico/WhatsApp e data preferencial para a intervenção.</li>
+    <li>Ao confirmar, o sistema:
+      <ul>
+        <li>Gera a fatura de subscrição e setup.</li>
+        <li>Cria o registo de intervenção na tabela de suporte técnico.</li>
+        <li>Notifica a equipa de engenharia do Movax ERP.</li>
+      </ul>
+    </li>
+    <li>Apresenta ao cliente a mensagem de compromisso: <em>"Pedido registado com sucesso! A nossa equipa técnica entrará em contacto em menos de 24h para agendar a configuração técnica."</em></li>
+  </ol>
+
+  <div style="margin-top: 40pt; text-align: center; border-top: 1pt solid #cbd5e1; padding-top: 15pt; font-size: 9pt; color: #64748b;">
+    <strong>MM Global Techno Solutions, Lda.</strong><br>
+    Maputo, Moçambique | Contacto Comercial: comercial@movax.co.mz | Suporte: suporte@movax.co.mz<br>
+    <em>Movax ERP — Gestão que Move o seu Negócio.</em>
+  </div>
+
+</div>
+</body>
+</html>

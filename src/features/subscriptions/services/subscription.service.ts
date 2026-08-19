@@ -12,103 +12,153 @@ import type {
 } from '@/shared/types/domain.types';
 import { DEFAULT_SUBSCRIPTION_PLANS } from '@/features/landing/services/onboarding.service';
 
-export const AVAILABLE_ADDONS_CATALOG: Array<{
+export interface AddonCatalogItem {
   code: string;
   name: string;
   description: string;
   priceMonthly: number;
+  setupFee: number;
   category: string;
-}> = [
+  requiresTechnicalSetup: boolean;
+  technicalScope?: string;
+  badge: 'Instantâneo' | 'Configuração Técnica';
+}
+
+export const AVAILABLE_ADDONS_CATALOG: AddonCatalogItem[] = [
   {
     code: 'BUSINESS_API',
     name: 'Módulo Business API (Enterprise)',
-    description: 'Chaves de API REST, Webhooks e sincronização com e-commerce e ERPs externos.',
+    description: 'Chaves de API REST, Webhooks e sincronização com e-commerce (Shopify/WooCommerce) e ERPs externos.',
     priceMonthly: 2500,
+    setupFee: 5000,
     category: 'Integração',
+    requiresTechnicalSetup: true,
+    badge: 'Configuração Técnica',
+    technicalScope: 'Geração de chaves de API, configuração de Webhooks, whitelisting de IPs e apoio à equipa de desenvolvimento do cliente.',
+  },
+  {
+    code: 'SUPERMARKET_POS',
+    name: 'Módulo Supermercado & Balanças',
+    description: 'Frente de caixa rápida com leitura de códigos de barras de balança EAN-13 (peso e preço embutidos).',
+    priceMonthly: 1500,
+    setupFee: 3000,
+    category: 'POS & Retalho',
+    requiresTechnicalSetup: true,
+    badge: 'Configuração Técnica',
+    technicalScope: 'Parametrização de balanças de balcão (Toledo, Digi, Filizola) com protocolo de etiquetas EAN-13.',
   },
   {
     code: 'BACKUP_TRANSITION',
     name: 'Backup Cloud Contínuo & Transição de Dados',
-    description: 'Cópias de segurança automáticas em nuvem isolada e assistente de importação de dados.',
+    description: 'Cópias de segurança automáticas em nuvem isolada e assistente de importação de dados legados.',
     priceMonthly: 1500,
+    setupFee: 3500,
     category: 'Sistema',
+    requiresTechnicalSetup: true,
+    badge: 'Configuração Técnica',
+    technicalScope: 'Extração, limpeza, saneamento e importação de bases de dados antigas (Primavera, PHC, Excel) para a cloud.',
+  },
+  {
+    code: 'OFFLINE_SYNC',
+    name: 'Offline-First & Sync Windows (Desktop)',
+    description: 'Operação ininterrupta sem internet no balcão com replicação automática quando a conexão regressa.',
+    priceMonthly: 1500,
+    setupFee: 3500,
+    category: 'Sistema',
+    requiresTechnicalSetup: true,
+    badge: 'Configuração Técnica',
+    technicalScope: 'Instalação do agente Windows, base de dados local SQLite/Postgres e configuração do sincronizador em background.',
+  },
+  {
+    code: 'BUTCHER_MODULE',
+    name: 'Módulo Talho & Desmancho',
+    description: 'Conversão de carcaças em cortes nobres/secundários, rendimento percentual e cálculo de quebras.',
+    priceMonthly: 1500,
+    setupFee: 2500,
+    category: 'Produção',
+    requiresTechnicalSetup: true,
+    badge: 'Configuração Técnica',
+    technicalScope: 'Parametrização das fichas técnicas de corte e tabelas de rendimento personalizadas para o negócio.',
   },
   {
     code: 'STOCK_VALUATION_PRO',
     name: 'Rastreabilidade Lotes, Validade & Séries (FIFO/LIFO)',
-    description: 'Controlo de lotes com validade, números de série e métodos de valorização FIFO/LIFO.',
+    description: 'Controlo de lotes com validade, números de série individuais e métodos de valorização FIFO/LIFO.',
     priceMonthly: 1500,
+    setupFee: 0,
     category: 'Stock',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
   {
     code: 'BANK_RECONCILIATION',
     name: 'Baixa de Banco & Reconciliação Bancária',
-    description: 'Extratos de contas bancárias (BIM, BCI, Standard Bank) com baixa automática de faturas.',
+    description: 'Extratos de contas bancárias (BIM, BCI, Standard Bank, Moza, Absa) com liquidação atómica de faturas.',
     priceMonthly: 1500,
+    setupFee: 0,
     category: 'Financeiro',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
   {
     code: 'ADVANCED_STOCK',
     name: 'Stock Avançado & Múltiplos Armazéns',
     description: 'Transferências em trânsito com Guia, rastreio minucioso e inventários por armazém.',
     priceMonthly: 1500,
+    setupFee: 0,
     category: 'Stock',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
   {
     code: 'PURCHASES',
     name: 'Compras & Fornecedores Multimoeda',
-    description: 'Faturas de compras com câmbio manual e contas correntes de fornecedores.',
+    description: 'Faturas de compras com câmbio manual (USD, ZAR, EUR) e contas correntes de fornecedores.',
     priceMonthly: 1500,
+    setupFee: 0,
     category: 'Compras',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
   {
     code: 'FINANCIAL',
     name: 'Financeiro & Contas Correntes',
     description: 'Extratos de clientes, liquidações a prazo e recibos com alocação atómica.',
     priceMonthly: 2000,
+    setupFee: 0,
     category: 'Financeiro',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
   {
     code: 'BI_PRO',
     name: 'Relatórios & BI Pro',
     description: 'Margens reais, curva ABC, rentabilidade e exportações analíticas em Excel/Word/PDF.',
     priceMonthly: 1500,
+    setupFee: 0,
     category: 'Relatórios',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
   {
     code: 'MULTI_BRANCH',
     name: 'Multi-Filial / Sucursais',
     description: 'Gestão de múltiplas lojas com consolidação centralizada.',
     priceMonthly: 1500,
+    setupFee: 0,
     category: 'Gestão',
-  },
-  {
-    code: 'SUPERMARKET_POS',
-    name: 'Módulo Supermercado & Balanças',
-    description: 'Frente de caixa rápida com leitura de códigos de barras de balança EAN-13.',
-    priceMonthly: 1500,
-    category: 'POS',
-  },
-  {
-    code: 'BUTCHER_MODULE',
-    name: 'Módulo Talho & Desmancho',
-    description: 'Conversão de carcaças em cortes, rendimento, quebra e lotes.',
-    priceMonthly: 1500,
-    category: 'Produção',
-  },
-  {
-    code: 'OFFLINE_SYNC',
-    name: 'Offline-First & Sync Windows',
-    description: 'Operação ininterrupta sem internet com sincronização automática.',
-    priceMonthly: 1500,
-    category: 'Sistema',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
   {
     code: 'SECURITY_PRO',
     name: 'Segurança & Auditoria Fina',
     description: 'Perfis avançados por função e logs detalhados de ações críticas.',
     priceMonthly: 1000,
+    setupFee: 0,
     category: 'Segurança',
+    requiresTechnicalSetup: false,
+    badge: 'Instantâneo',
   },
 ];
 
@@ -294,6 +344,93 @@ export const SubscriptionService = {
         invoices: [],
       };
     }
+  },
+
+  async activateInstantAddon(
+    addonCode: string,
+    paymentMethod: 'M_PESA' | 'BANK_TRANSFER',
+    mpesaNumber?: string,
+  ): Promise<void> {
+    const client = requireSupabase();
+    const catalogItem = AVAILABLE_ADDONS_CATALOG.find((a) => a.code === addonCode);
+    const amount = catalogItem?.priceMonthly || 1500;
+    const ref = paymentMethod === 'M_PESA' ? `MPESA-ADDON-${mpesaNumber || '84XXXXXXX'}` : 'REF-BANCO-ADDON';
+
+    // 1. Activate addon for company
+    await client.from('company_addons').upsert(
+      {
+        addon_code: addonCode,
+        status: 'ACTIVE',
+        price_monthly: amount,
+        quantity: 1,
+        starts_at: new Date().toISOString(),
+      },
+      { onConflict: 'company_id,addon_code' },
+    );
+
+    // 2. Generate invoice record
+    await client.from('license_billing_invoices').insert({
+      invoice_number: `INV-ADDON-${Date.now().toString().slice(-6)}`,
+      period_start: new Date().toISOString().slice(0, 10),
+      period_end: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+      plan_code: addonCode,
+      total_amount: amount,
+      payment_method: paymentMethod,
+      payment_reference: ref,
+      status: 'PAID',
+      paid_at: new Date().toISOString(),
+    });
+  },
+
+  async requestTechnicalSetup(params: {
+    addonCode: string;
+    contactName: string;
+    contactPhone: string;
+    contactEmail?: string;
+    preferredDate?: string;
+    notes?: string;
+    paymentMethod: 'M_PESA' | 'BANK_TRANSFER';
+    mpesaNumber?: string;
+  }): Promise<void> {
+    const client = requireSupabase();
+    const catalogItem = AVAILABLE_ADDONS_CATALOG.find((a) => a.code === params.addonCode);
+    const setupFee = catalogItem?.setupFee || 3500;
+    const monthlyFee = catalogItem?.priceMonthly || 1500;
+    const ref = params.paymentMethod === 'M_PESA' ? `MPESA-SETUP-${params.mpesaNumber || '84XXXXXXX'}` : 'REF-BANCO-SETUP';
+
+    // 1. Insert technical setup request
+    const { error: reqErr } = await client.from('technical_setup_requests').insert({
+      addon_code: params.addonCode,
+      addon_name: catalogItem?.name || params.addonCode,
+      contact_name: params.contactName,
+      contact_phone: params.contactPhone,
+      contact_email: params.contactEmail,
+      preferred_date: params.preferredDate || null,
+      notes: params.notes || null,
+      setup_fee: setupFee,
+      monthly_fee: monthlyFee,
+      payment_method: params.paymentMethod,
+      payment_reference: ref,
+      status: 'PENDING',
+    });
+
+    if (reqErr) {
+      logger.error('Failed to create technical setup request', reqErr, { module: 'SubscriptionService' });
+      throw new AppError('Falha ao registar o pedido de configuração técnica.', 'SETUP_REQUEST_ERROR');
+    }
+
+    // 2. Insert billing invoice for the setup + first month
+    await client.from('license_billing_invoices').insert({
+      invoice_number: `INV-SETUP-${Date.now().toString().slice(-6)}`,
+      period_start: new Date().toISOString().slice(0, 10),
+      period_end: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+      plan_code: `${params.addonCode}_SETUP`,
+      total_amount: setupFee + monthlyFee,
+      payment_method: params.paymentMethod,
+      payment_reference: ref,
+      status: 'PAID',
+      paid_at: new Date().toISOString(),
+    });
   },
 
   async toggleAddon(addonCode: string, activate: boolean): Promise<void> {

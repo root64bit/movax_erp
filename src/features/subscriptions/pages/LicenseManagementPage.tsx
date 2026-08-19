@@ -1,9 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SubscriptionService,
   AVAILABLE_ADDONS_CATALOG,
+  type AddonCatalogItem,
 } from '../services/subscription.service';
 import { UpgradePlanModal } from '../components/UpgradePlanModal';
+import { AddonCheckoutModal } from '../components/AddonCheckoutModal';
 import type { LicenseOverview } from '@/shared/types/domain.types';
 
 export const LicenseManagementPage: React.FC = () => {
@@ -11,6 +13,7 @@ export const LicenseManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [targetAddon, setTargetAddon] = useState<string | undefined>();
+  const [checkoutAddon, setCheckoutAddon] = useState<AddonCatalogItem | null>(null);
   const [togglingAddon, setTogglingAddon] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState('');
 
@@ -30,15 +33,16 @@ export const LicenseManagementPage: React.FC = () => {
     void loadData();
   }, []);
 
-  const handleToggleAddon = async (addonCode: string, currentActive: boolean) => {
+  const handleDeactivateAddon = async (addonCode: string) => {
+    if (!confirm(`Tem a certeza que deseja desativar o módulo ${addonCode}?`)) return;
     setTogglingAddon(addonCode);
     try {
-      await SubscriptionService.toggleAddon(addonCode, !currentActive);
-      setActionNotice(`Módulo ${addonCode} ${!currentActive ? 'ativado' : 'desativado'} com sucesso.`);
+      await SubscriptionService.toggleAddon(addonCode, false);
+      setActionNotice(`Módulo ${addonCode} desativado com sucesso.`);
       await loadData();
       setTimeout(() => setActionNotice(''), 3000);
     } catch (err: any) {
-      alert(err.message || 'Falha ao atualizar módulo.');
+      alert(err.message || 'Falha ao desativar módulo.');
     } finally {
       setTogglingAddon(null);
     }
@@ -63,8 +67,8 @@ export const LicenseManagementPage: React.FC = () => {
     ? Math.max(
         0,
         Math.ceil(
-          (new Date(sub.currentPeriodEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-        )
+          (new Date(sub.currentPeriodEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+        ),
       )
     : 30;
 
@@ -231,7 +235,7 @@ export const LicenseManagementPage: React.FC = () => {
             Módulos e Add-ons Específicos
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Ative funcionalidades avançadas para expandir a capacidade do seu ERP sem mudar de plano.
+            Ative funcionalidades avançadas para expandir a capacidade do seu ERP com ativação instantânea ou assistência técnica especializada.
           </p>
         </div>
 
@@ -240,6 +244,7 @@ export const LicenseManagementPage: React.FC = () => {
             const activeRecord = addons.find((a) => a.addonCode === catAddon.code);
             const isAddonActive = activeRecord?.isActive ?? false;
             const isToggling = togglingAddon === catAddon.code;
+            const isTechnical = catAddon.requiresTechnicalSetup;
 
             return (
               <div
@@ -252,9 +257,20 @@ export const LicenseManagementPage: React.FC = () => {
               >
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded">
-                      {catAddon.category}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded">
+                        {catAddon.category}
+                      </span>
+                      <span
+                        className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
+                          isTechnical
+                            ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300'
+                            : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300'
+                        }`}
+                      >
+                        {isTechnical ? '🛠️ Setup Técnico' : '⚡ Instantâneo'}
+                      </span>
+                    </div>
                     <span
                       className={`text-[11px] font-bold ${
                         isAddonActive ? 'text-green-600 dark:text-green-400' : 'text-slate-400'
@@ -268,27 +284,60 @@ export const LicenseManagementPage: React.FC = () => {
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
-                  <span className="text-xs font-black text-primary">
-                    {catAddon.priceMonthly.toLocaleString('pt-MZ')} MT/mês
-                  </span>
-                  <button
-                    type="button"
-                    disabled={isToggling}
-                    onClick={() => handleToggleAddon(catAddon.code, isAddonActive)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      isAddonActive
-                        ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300'
-                        : 'bg-primary text-white hover:bg-primary-container'
-                    }`}
-                  >
-                    {isToggling ? 'A guardar…' : isAddonActive ? 'Desativar' : 'Ativar'}
-                  </button>
+                  <div>
+                    <span className="text-xs font-black text-primary block">
+                      {catAddon.priceMonthly.toLocaleString('pt-MZ')} MT/mês
+                    </span>
+                    {isTechnical && (
+                      <span className="text-[10px] text-slate-400 font-bold block">
+                        + {catAddon.setupFee.toLocaleString('pt-MZ')} MT taxa única
+                      </span>
+                    )}
+                  </div>
+
+                  {isAddonActive ? (
+                    <button
+                      type="button"
+                      disabled={isToggling}
+                      onClick={() => handleDeactivateAddon(catAddon.code)}
+                      className="px-3 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 transition-all cursor-pointer"
+                    >
+                      {isToggling ? 'A desativar…' : 'Desativar'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCheckoutAddon(catAddon)}
+                      className={`px-3 py-2 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer flex items-center gap-1.5 ${
+                        isTechnical
+                          ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                          : 'bg-primary hover:bg-primary-container text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        {isTechnical ? 'support_agent' : 'bolt'}
+                      </span>
+                      <span>
+                        {isTechnical
+                          ? 'Solicitar Configuração'
+                          : `Ativar por ${catAddon.priceMonthly.toLocaleString('pt-MZ')} MT`}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Addon Checkout & Technical Setup Modal */}
+      <AddonCheckoutModal
+        isOpen={Boolean(checkoutAddon)}
+        onClose={() => setCheckoutAddon(null)}
+        addon={checkoutAddon}
+        onCompleted={loadData}
+      />
 
       {/* Upgrade Plan Modal */}
       <UpgradePlanModal
