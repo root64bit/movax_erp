@@ -1,4 +1,4 @@
-﻿import { requireSupabase } from '@/integrations/supabase/client';
+import { requireSupabase } from '@/integrations/supabase/client';
 import { logger } from '@/shared/lib/logger';
 import { ValidationError, AppError } from '@/shared/utils/errorUtils';
 import type { TenantOnboardingInput, SubscriptionPlan, SubscriptionPlanCode } from '@/shared/types/domain.types';
@@ -8,8 +8,8 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     code: 'STARTER',
     name: 'STARTER',
     description: 'Para pequenos negócios em crescimento e prestadores de serviços.',
-    priceMonthly: 4500,
-    priceAnnual: 45900,
+    priceMonthly: 3900,
+    priceAnnual: 39780,
     maxUsers: 3,
     maxBranches: 1,
     maxWarehouses: 1,
@@ -26,7 +26,14 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     maxBranches: 1,
     maxWarehouses: 2,
     maxPosTerminals: 2,
-    includedFeatures: ['CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL'],
+    includedFeatures: [
+      'CORE',
+      'ADVANCED_STOCK',
+      'PURCHASES',
+      'FINANCIAL',
+      'BANK_RECONCILIATION',
+      'STOCK_VALUATION_PRO',
+    ],
     popular: true,
   },
   {
@@ -39,12 +46,22 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     maxBranches: 2,
     maxWarehouses: 6,
     maxPosTerminals: 6,
-    includedFeatures: ['CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL', 'BI_PRO', 'MULTI_BRANCH', 'SECURITY_PRO'],
+    includedFeatures: [
+      'CORE',
+      'ADVANCED_STOCK',
+      'PURCHASES',
+      'FINANCIAL',
+      'BANK_RECONCILIATION',
+      'STOCK_VALUATION_PRO',
+      'BI_PRO',
+      'MULTI_BRANCH',
+      'SECURITY_PRO',
+    ],
   },
   {
     code: 'ENTERPRISE',
     name: 'ENTERPRISE',
-    description: 'Redes de lojas, grandes distribuidores, talhos industriais e supermercados.',
+    description: 'Redes de lojas, grandes distribuidores, talhos industriais e supermercados com API dedicada.',
     priceMonthly: 0,
     priceAnnual: 0,
     maxUsers: null,
@@ -52,9 +69,21 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     maxWarehouses: null,
     maxPosTerminals: null,
     includedFeatures: [
-      'CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL', 'BI_PRO',
-      'MULTI_BRANCH', 'SECURITY_PRO', 'SUPERMARKET_POS', 'BUTCHER_MODULE',
-      'OFFLINE_SYNC', 'LOCAL_PAYMENTS',
+      'CORE',
+      'ADVANCED_STOCK',
+      'PURCHASES',
+      'FINANCIAL',
+      'BANK_RECONCILIATION',
+      'STOCK_VALUATION_PRO',
+      'BI_PRO',
+      'MULTI_BRANCH',
+      'SECURITY_PRO',
+      'SUPERMARKET_POS',
+      'BUTCHER_MODULE',
+      'OFFLINE_SYNC',
+      'LOCAL_PAYMENTS',
+      'BUSINESS_API',
+      'BACKUP_TRANSITION',
     ],
   },
 ];
@@ -98,8 +127,8 @@ export const OnboardingService = {
         message: 'Registo concluído com sucesso! Pode agora iniciar sessão com a sua nova conta.',
       };
     } catch (err: any) {
-      logger.error('Failed to provision tenant', err, { module: 'OnboardingService' });
-      throw new AppError(err.message || 'Não foi possível concluir o registo.');
+      logger.error('Failed to register tenant', err, { module: 'OnboardingService' });
+      throw new AppError(err.message || 'Falha ao registar a empresa na plataforma.');
     }
   },
 };

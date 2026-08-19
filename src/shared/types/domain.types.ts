@@ -261,6 +261,58 @@ export interface CompanyProfile {
   bankAccounts?: BankAccount[];
   quotationValidityDays?: string;
   quotationDefaultNotes?: string;
+  valuationMethod?: 'PMP' | 'FIFO' | 'LIFO';
+}
+
+export type ValuationMethod = 'PMP' | 'FIFO' | 'LIFO';
+
+export interface ProductLot {
+  id: string;
+  companyId: string;
+  productId: string;
+  warehouseId?: string;
+  lotNumber: string;
+  manufactureDate?: string;
+  expirationDate?: string;
+  initialQuantity: number;
+  remainingQuantity: number;
+  unitCostMzn: number;
+  currency?: string;
+  exchangeRate?: number;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+export interface ProductSerialNumber {
+  id: string;
+  companyId: string;
+  productId: string;
+  warehouseId?: string;
+  lotId?: string;
+  serialNumber: string;
+  status: 'AVAILABLE' | 'SOLD' | 'DEFECTIVE' | 'RETURNED';
+  soldDocumentId?: string;
+  soldAt?: string;
+  notes?: string;
+}
+
+export interface BankStatementEntry {
+  id: string;
+  companyId: string;
+  bankName: string;
+  accountNumber?: string;
+  transactionDate: string;
+  valueDate?: string;
+  description: string;
+  referenceNumber?: string;
+  amountMzn: number;
+  movementType: 'CREDIT' | 'DEBIT';
+  status: 'PENDING' | 'RECONCILED' | 'IGNORED';
+  reconciledDocumentId?: string;
+  reconciledPartyType?: 'CUSTOMER' | 'SUPPLIER';
+  reconciledPartyId?: string;
+  reconciledAt?: string;
+  notes?: string;
 }
 
 export interface DocumentRecord {
@@ -280,6 +332,9 @@ export interface DocumentRecord {
   grandTotal: number;
   paidAmount: number;
   outstandingAmount: number;
+  currency?: string;
+  exchangeRate?: number;
+  foreignTotal?: number;
   salespersonName?: string;
   notes?: string;
   sourceDocumentId?: string;
@@ -358,6 +413,12 @@ export interface PurchaseItem {
   description: string;
   quantity: number;
   unitCost: number;
+  unitCostForeign?: number;
+  currency?: string;
+  exchangeRate?: number;
+  lotNumber?: string;
+  expirationDate?: string;
+  serialNumbers?: string[];
   discountPercent: number;
   taxPercent: number;
   total: number;
@@ -368,6 +429,9 @@ export interface PurchaseInvoiceInput {
   date: string;
   supplierInvoiceNumber: string;
   paymentTermCode: string;
+  currency?: string;
+  exchangeRate?: number;
+  foreignTotal?: number;
   items: PurchaseItem[];
 }
 

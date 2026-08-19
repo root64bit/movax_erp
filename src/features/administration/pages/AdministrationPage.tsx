@@ -33,6 +33,7 @@ interface AdministrationProps {
     bankAccounts: BankAccount[];
     quotationValidityDays: string;
     quotationDefaultNotes: string;
+    valuationMethod?: 'PMP' | 'FIFO' | 'LIFO';
   }) => Promise<void>;
 }
 
@@ -59,6 +60,9 @@ export function Administration({
   );
   const [validityDays, setValidityDays] = useState(company?.quotationValidityDays || '7 dias');
   const [defaultNotes, setDefaultNotes] = useState(company?.quotationDefaultNotes || '');
+  const [valuationMethod, setValuationMethod] = useState<'PMP' | 'FIFO' | 'LIFO'>(
+    company?.valuationMethod || 'PMP'
+  );
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
 
@@ -67,6 +71,7 @@ export function Administration({
       setBankAccounts(company.bankAccounts ?? []);
       if (company.quotationValidityDays) setValidityDays(company.quotationValidityDays);
       if (company.quotationDefaultNotes) setDefaultNotes(company.quotationDefaultNotes);
+      if (company.valuationMethod) setValuationMethod(company.valuationMethod);
     }
   }, [company]);
 
@@ -84,8 +89,9 @@ export function Administration({
         bankAccounts,
         quotationValidityDays: validityDays,
         quotationDefaultNotes: defaultNotes,
+        valuationMethod,
       });
-      setSettingsSuccess('Configurações de Cotações salvas permanentemente com sucesso!');
+      setSettingsSuccess('Configurações salvas permanentemente com sucesso!');
       setTimeout(() => setSettingsSuccess(''), 4000);
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar configurações.');
@@ -460,6 +466,77 @@ export function Administration({
               className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#282c2e] font-sans text-xs"
             />
           </div>
+          {/* Valuation Method (PMP, FIFO, LIFO) */}
+          <div className="col-span-12 p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-base">inventory_2</span>
+              <strong className="text-slate-800 dark:text-slate-100 text-xs">
+                Método de Custo & Saída de Stock (Algoritmo de Valorização)
+              </strong>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Escolha a regra de custeio utilizada pelo ERP para abater mercadorias e calcular a margem de lucro.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <label className={`p-2.5 rounded-lg border cursor-pointer transition-all ${
+                valuationMethod === 'PMP'
+                  ? 'bg-primary/10 border-primary text-primary font-bold'
+                  : 'bg-white dark:bg-[#282c2e] border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              }`}>
+                <input
+                  type="radio"
+                  name="valuationMethod"
+                  value="PMP"
+                  checked={valuationMethod === 'PMP'}
+                  onChange={() => setValuationMethod('PMP')}
+                  className="mr-2"
+                />
+                <strong>PMP (Preço Médio Ponderado)</strong>
+                <p className="text-[10px] text-slate-500 font-normal mt-1">
+                  Método padrão. Custo recalculado a cada compra ponderando o saldo total.
+                </p>
+              </label>
+
+              <label className={`p-2.5 rounded-lg border cursor-pointer transition-all ${
+                valuationMethod === 'FIFO'
+                  ? 'bg-primary/10 border-primary text-primary font-bold'
+                  : 'bg-white dark:bg-[#282c2e] border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              }`}>
+                <input
+                  type="radio"
+                  name="valuationMethod"
+                  value="FIFO"
+                  checked={valuationMethod === 'FIFO'}
+                  onChange={() => setValuationMethod('FIFO')}
+                  className="mr-2"
+                />
+                <strong>FIFO (First In, First Out)</strong>
+                <p className="text-[10px] text-slate-500 font-normal mt-1">
+                  Primeiro a Entrar, Primeiro a Sair. Ideal para rotação e produtos com lote.
+                </p>
+              </label>
+
+              <label className={`p-2.5 rounded-lg border cursor-pointer transition-all ${
+                valuationMethod === 'LIFO'
+                  ? 'bg-primary/10 border-primary text-primary font-bold'
+                  : 'bg-white dark:bg-[#282c2e] border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              }`}>
+                <input
+                  type="radio"
+                  name="valuationMethod"
+                  value="LIFO"
+                  checked={valuationMethod === 'LIFO'}
+                  onChange={() => setValuationMethod('LIFO')}
+                  className="mr-2"
+                />
+                <strong>LIFO (Last In, First Out)</strong>
+                <p className="text-[10px] text-slate-500 font-normal mt-1">
+                  Último a Entrar, Primeiro a Sair. Ideal para produtos não perecíveis.
+                </p>
+              </label>
+            </div>
+          </div>
+
           <div className="col-span-12 flex justify-end">
             <button
               type="submit"

@@ -1829,7 +1829,7 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     maxBranches: 1,
     maxWarehouses: 2,
     maxPosTerminals: 2,
-    includedFeatures: ['CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL'],
+    includedFeatures: ['CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL', 'BANK_RECONCILIATION', 'STOCK_VALUATION_PRO'],
     popular: true,
   },
   {
@@ -1842,12 +1842,12 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     maxBranches: 2,
     maxWarehouses: 6,
     maxPosTerminals: 6,
-    includedFeatures: ['CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL', 'BI_PRO', 'MULTI_BRANCH', 'SECURITY_PRO'],
+    includedFeatures: ['CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL', 'BANK_RECONCILIATION', 'STOCK_VALUATION_PRO', 'BI_PRO', 'MULTI_BRANCH', 'SECURITY_PRO'],
   },
   {
     code: 'ENTERPRISE',
     name: 'ENTERPRISE',
-    description: 'Redes de lojas, grandes distribuidores, talhos industriais e supermercados.',
+    description: 'Redes de lojas, grandes distribuidores, talhos industriais e supermercados com API dedicada.',
     priceMonthly: 0,
     priceAnnual: 0,
     maxUsers: null,
@@ -1855,9 +1855,9 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     maxWarehouses: null,
     maxPosTerminals: null,
     includedFeatures: [
-      'CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL', 'BI_PRO',
+      'CORE', 'ADVANCED_STOCK', 'PURCHASES', 'FINANCIAL', 'BANK_RECONCILIATION', 'STOCK_VALUATION_PRO', 'BI_PRO',
       'MULTI_BRANCH', 'SECURITY_PRO', 'SUPERMARKET_POS', 'BUTCHER_MODULE',
-      'OFFLINE_SYNC', 'LOCAL_PAYMENTS',
+      'OFFLINE_SYNC', 'LOCAL_PAYMENTS', 'BUSINESS_API', 'BACKUP_TRANSITION',
     ],
   },
 ];
@@ -1870,6 +1870,34 @@ export const AVAILABLE_ADDONS_CATALOG: Array<{
   category: string;
 }> = [
   {
+    code: 'BUSINESS_API',
+    name: 'Módulo Business API (Enterprise)',
+    description: 'Chaves de API REST, Webhooks e sincronização com e-commerce e ERPs externos.',
+    priceMonthly: 2500,
+    category: 'Integração',
+  },
+  {
+    code: 'BACKUP_TRANSITION',
+    name: 'Backup Cloud Contínuo & Transição de Dados',
+    description: 'Cópias de segurança automáticas em nuvem isolada e assistente de importação de dados.',
+    priceMonthly: 1500,
+    category: 'Sistema',
+  },
+  {
+    code: 'STOCK_VALUATION_PRO',
+    name: 'Rastreabilidade Lotes, Validade & Séries (FIFO/LIFO)',
+    description: 'Controlo de lotes com validade, números de série e métodos de valorização FIFO/LIFO.',
+    priceMonthly: 1500,
+    category: 'Stock',
+  },
+  {
+    code: 'BANK_RECONCILIATION',
+    name: 'Baixa de Banco & Reconciliação Bancária',
+    description: 'Extratos de contas bancárias (BIM, BCI, Standard Bank) com baixa automática de faturas.',
+    priceMonthly: 1500,
+    category: 'Financeiro',
+  },
+  {
     code: 'ADVANCED_STOCK',
     name: 'Stock Avançado & Múltiplos Armazéns',
     description: 'Transferências em trânsito com Guia, rastreio minucioso e inventários por armazém.',
@@ -1878,8 +1906,8 @@ export const AVAILABLE_ADDONS_CATALOG: Array<{
   },
   {
     code: 'PURCHASES',
-    name: 'Compras & Fornecedores',
-    description: 'Faturas de compras, cálculo automático de custos e contas correntes de fornecedores.',
+    name: 'Compras & Fornecedores Multimoeda',
+    description: 'Faturas de compras com câmbio manual e contas correntes de fornecedores.',
     priceMonthly: 1500,
     category: 'Compras',
   },
