@@ -1,4 +1,4 @@
-﻿import { requireSupabase } from '@/integrations/supabase/client';
+import { requireSupabase } from '@/integrations/supabase/client';
 import { numberValue } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
@@ -155,5 +155,21 @@ export const CashService = {
       reference: payment.external_reference ?? reference,
       description: payment.description ?? undefined,
     };
+  },
+
+  async fetchCashSessions(limit = 50): Promise<CashSession[]> {
+    const client = requireSupabase();
+    const { data, error } = await client
+      .from('cash_sessions')
+      .select('*')
+      .order('opened_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      logger.error('Failed to fetch cash sessions', error, { module: 'CashService' });
+      throw new AppError(error.message || 'Falha ao carregar histórico de caixas.');
+    }
+
+    return ((data ?? []) as Record<string, any>[]).map(mapCashSession);
   },
 };

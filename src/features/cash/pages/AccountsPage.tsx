@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { CashSession, Client, DocumentRecord, LedgerRecord, PaymentRecord } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
 import { CashService } from '../services/cash.service';
-import { fetchCashSessions } from '@/lib/appData';
 import { BaixaBancoModal } from '@/features/accounts/components/BaixaBancoModal';
 import { exportToExcel, exportToWord, exportToPdf } from '@/shared/utils/export.utils';
 
@@ -77,7 +76,7 @@ export function Accounts({
     setCashLoading(true);
     setCashError('');
     try {
-      setCashSessions(await fetchCashSessions(20));
+      setCashSessions(await CashService.fetchCashSessions(20));
     } catch (error: any) {
       setCashError(error?.message || 'Falha ao carregar o caixa.');
     } finally {

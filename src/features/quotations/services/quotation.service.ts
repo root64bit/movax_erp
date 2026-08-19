@@ -64,33 +64,30 @@ export const QuotationService = {
       paidAmount: 0,
       subtotalBruto: numberValue(insertedDoc.subtotal),
       descontoTotal: numberValue(insertedDoc.discount_total),
+      subtotalLiquido: numberValue(insertedDoc.net_total),
       ivaTotal: numberValue(insertedDoc.tax_total),
       totalAmount: numberValue(insertedDoc.grand_total),
       pendingAmount: numberValue(insertedDoc.outstanding_amount),
     };
   },
 
-  async convertToInvoice(
-    quotationId: string,
-    documentTypeCode = 'CUSTOMER_INVOICE',
-    paymentMethod = 'CASH',
-  ): Promise<{ id: string; docNumber: string }> {
+  async saveCompanyQuotationSettings(
+    companyId: string,
+    settings: { validityDays: number; defaultNotes: string }
+  ): Promise<void> {
     const client = requireSupabase();
-    const { data, error } = await client.rpc('convert_quotation_to_operational_invoice_v1', {
-      p_quotation_id: quotationId,
-      p_document_type_code: documentTypeCode,
-      p_payment_method: paymentMethod,
-    });
+    const { error } = await client
+      .from('companies')
+      .update({
+        quotation_validity_days: settings.validityDays,
+        quotation_default_notes: settings.defaultNotes.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', companyId);
 
     if (error) {
-      logger.error('Failed to convert quotation to invoice', error, { module: 'QuotationService', quotationId });
-      throw new AppError(error.message || 'Falha ao converter cotação para fatura.');
+      logger.error('Failed to save quotation settings', error, { module: 'QuotationService', companyId });
+      throw new AppError(error.message || 'Falha ao guardar definições de cotação.');
     }
-
-    const doc = Array.isArray(data) ? data[0] : data;
-    return {
-      id: String(doc.id),
-      docNumber: String(doc.display_number),
-    };
   },
 };

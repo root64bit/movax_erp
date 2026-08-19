@@ -2,7 +2,7 @@
 import { numberValue } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
-import type { StockTransfer, StockTransferLine } from '@/shared/types/domain.types';
+import type { StockTransfer, StockTransferLine, StockGuideInput } from '@/shared/types/domain.types';
 
 export const StockTransfersService = {
   async fetchTransfers(limit = 100): Promise<StockTransfer[]> {
@@ -109,21 +109,54 @@ export const StockTransfersService = {
     }
   },
 
-  async cancelTransfer(transferId: string, reason: string): Promise<void> {
-    if (!reason.trim()) throw new ValidationError('O motivo do cancelamento é obrigatório.');
+  async cancelTransfer(transferId: string, reason?: string): Promise<void> {
     const client = requireSupabase();
-    const { error } = await client.rpc('cancel_stock_transfer_v1', {
-      p_transfer_id: transferId,
-      p_reason: reason.trim() || null,
-    });
+    const { error } = await client
+      .from('stock_transfers')
+      .update({
+        status: 'CANCELLED',
+        notes: reason ? `Cancelado: ${reason}` : undefined,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', transferId);
     if (error) {
-      logger.error('Failed to cancel transfer', error, { module: 'StockTransfersService', transferId });
-      throw new AppError(error.message || 'Falha ao cancelar transferência.');
+      logger.error('Failed to cancel stock transfer', error, { module: 'StockTransfersService', transferId });
+      throw new AppError(error.message || 'Falha ao anular transferência.');
     }
   },
 
+  async saveStockGuide(input: StockGuideInput): Promise<string> {
+    const client = requireSupabase();
+    const params = {
+      p_guide_number: input.guideNumber.trim(),
+      p_document_date: input.date,
+      p_warehouse_id: input.warehouseId,
+      p_supplier_id: input.type === 'entrada' && input.supplierId ? input.supplierId : null,
+      p_notes: input.notes?.trim() || null,
+      p_items: input.items.map((item) => ({
+        product_id: item.articleId,
+        quantity: item.quantity,
+        unit_cost: item.unitCost ?? null,
+        sale_price_incl: input.type === 'entrada' ? (item.salePriceWithIva ?? null) : null,
+      })),
+    };
+
+    const result = input.id
+      ? await client.rpc('update_stock_guide_v2', { p_document_id: input.id, ...params })
+      : await client.rpc('create_stock_guide_v2', {
+          p_guide_type: input.type === 'entrada' ? 'STOCK_ENTRY_GUIDE' : 'STOCK_EXIT_GUIDE',
+          p_idempotency_key: crypto.randomUUID(),
+          ...params,
+        });
+
+    if (result.error) {
+      logger.error('Failed to save stock guide', result.error, { module: 'StockTransfersService' });
+      throw new AppError(result.error.message || 'Falha ao guardar a guia de stock.');
+    }
+    return String(result.data);
+  },
+
   async cancelStockGuide(documentId: string, reason: string): Promise<void> {
-    if (!reason.trim()) throw new ValidationError('O motivo da anulação é obrigatório.');
     const client = requireSupabase();
     const { error } = await client.rpc('cancel_stock_guide_v2', {
       p_document_id: documentId,

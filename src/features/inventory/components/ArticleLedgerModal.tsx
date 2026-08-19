@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import type { Article, StockMovement, DocumentRecord, SaleInvoice } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
-import { fetchStockMovementExtract, type StockExtractResult } from '@/lib/appData';
+import { InventoryService, type StockExtractResult } from '../services/inventory.service';
 import { Pagination } from '@/components/Pagination';
 
 interface ArticleLedgerModalProps {
@@ -90,7 +90,7 @@ export const ArticleLedgerModal: React.FC<ArticleLedgerModalProps> = ({
     if (!isOpen || !article) return;
     let cancelled = false;
     setLoading(true);
-    fetchStockMovementExtract(
+    InventoryService.fetchStockMovementExtract(
       article.id,
       dateFrom || undefined,
       dateTo || undefined,
@@ -312,8 +312,8 @@ export const ArticleLedgerModal: React.FC<ArticleLedgerModalProps> = ({
       m.entradas.toFixed(3),
       m.saidas.toFixed(3),
       m.saldo.toFixed(3),
-      canViewCost ? m.unitCost.toFixed(2) : '0.00',
-      canViewCost ? m.valor.toFixed(2) : '0.00',
+      canViewCost ? (Number(m.unitCost) || 0).toFixed(2) : '0.00',
+      canViewCost ? (Number(m.valor) || 0).toFixed(2) : '0.00',
       `"${m.operator}"`,
     ]);
 

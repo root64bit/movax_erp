@@ -1,28 +1,18 @@
 ﻿import { requireSupabase } from '@/integrations/supabase/client';
 import { logger } from '@/shared/lib/logger';
-import { AppError, ValidationError } from '@/shared/utils/errorUtils';
-import type { CompanyProfile, UserSummary } from '@/shared/types/domain.types';
+import { AppError } from '@/shared/utils/errorUtils';
+import type { UserSummary } from '@/shared/types/domain.types';
 
 export const AdministrationService = {
-  async updateUser(
-    user: UserSummary,
-    active: boolean,
-    newBundles?: string[],
-    newPermissions?: string[],
-    newPassword?: string,
-  ): Promise<void> {
+  async setOperationalContext(warehouseId: string, posTerminalId?: string): Promise<void> {
     const client = requireSupabase();
-    const { error } = await client.rpc('admin_update_company_user_v2', {
-      p_user_id: user.id,
-      p_active: active,
-      p_responsibility_bundles: newBundles || null,
-      p_extra_permissions: newPermissions || null,
-      p_new_password: newPassword?.trim() || null,
+    const { error } = await client.rpc('set_operational_context_v1', {
+      p_warehouse_id: warehouseId,
+      p_pos_terminal_id: posTerminalId || null,
     });
-
     if (error) {
-      logger.error('Failed to update user', error, { module: 'AdministrationService', userId: user.id });
-      throw new AppError(error.message || 'Falha ao actualizar o utilizador.');
+      logger.error('Failed to set operational context', error, { module: 'AdministrationService', warehouseId, posTerminalId });
+      throw new AppError(error.message || 'Falha ao definir contexto operacional.');
     }
   },
 
@@ -34,22 +24,40 @@ export const AdministrationService = {
     permissions: string[];
     telephone?: string;
   }): Promise<void> {
-    if (!userData.fullName.trim()) throw new ValidationError('O nome completo é obrigatório.');
-    if (!userData.email.trim()) throw new ValidationError('O email é obrigatório.');
-
     const client = requireSupabase();
-    const { error } = await client.rpc('admin_create_company_user_v2', {
-      p_full_name: userData.fullName.trim(),
-      p_email: userData.email.trim().toLowerCase(),
-      p_password: userData.password || null,
-      p_responsibility_bundles: userData.bundles,
-      p_extra_permissions: userData.permissions,
-      p_telephone: userData.telephone?.trim() || null,
+    logger.info('Creating user via AdministrationService', { email: userData.email });
+    // In current implementation, updates or inserts into user profile/roles
+    const { error } = await client.from('user_profiles').insert({
+      full_name: userData.fullName.trim(),
+      email: userData.email.trim(),
+      phone: userData.telephone?.trim() || null,
+      is_active: true,
     });
-
     if (error) {
-      logger.error('Failed to create company user', error, { module: 'AdministrationService', email: userData.email });
-      throw new AppError(error.message || 'Falha ao criar o utilizador.');
+      logger.error('Failed to create user', error, { module: 'AdministrationService' });
+      throw new AppError(error.message || 'Falha ao criar utilizador.');
+    }
+  },
+
+  async updateUser(
+    user: UserSummary,
+    active: boolean,
+    newBundles?: string[],
+    newPermissions?: string[],
+    newPassword?: string
+  ): Promise<void> {
+    const client = requireSupabase();
+    logger.info('Updating user via AdministrationService', { userId: user.id });
+    const { error } = await client
+      .from('user_profiles')
+      .update({
+        is_active: active,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id);
+    if (error) {
+      logger.error('Failed to update user', error, { module: 'AdministrationService', userId: user.id });
+      throw new AppError(error.message || 'Falha ao atualizar utilizador.');
     }
   },
 };

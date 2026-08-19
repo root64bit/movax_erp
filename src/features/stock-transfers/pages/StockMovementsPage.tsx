@@ -6,7 +6,6 @@ import { Pagination } from '@/components/Pagination';
 import { formatMZN } from '@/shared/utils/formatters';
 import { StockTransfersService } from '../services/stockTransfers.service';
 import { InventoryService } from '@/features/inventory/services/inventory.service';
-import { fetchStockMovementsPage } from '@/lib/appData';
 
 export type GuideLineItem = StockGuideItem;
 
@@ -108,7 +107,7 @@ export const StockMovements: React.FC<StockMovementsProps> = ({
     const timer=window.setTimeout(() => {
       setHistoryLoading(true);
       setHistoryError('');
-      fetchStockMovementsPage(
+      InventoryService.fetchStockMovementsPage(
         dateFrom,dateTo,typeFilter,searchQuery,movementsPageSize,(movementsPage-1)*movementsPageSize,
       ).then((result) => {
         if(cancelled)return;

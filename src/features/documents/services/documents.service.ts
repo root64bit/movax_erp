@@ -54,4 +54,18 @@ export const DocumentsService = {
       throw new AppError(error.message || 'Falha ao emitir aviso financeiro.');
     }
   },
+
+  async cancelFinancialAdvice(adviceId: string, reason: string): Promise<void> {
+    const client = requireSupabase();
+    const { error } = await client.rpc('cancel_financial_advice_document_v1', {
+      p_advice_id: adviceId,
+      p_reason: reason.trim(),
+      p_idempotency_key: crypto.randomUUID(),
+    });
+
+    if (error) {
+      logger.error('Failed to cancel financial advice', error, { module: 'DocumentsService', adviceId });
+      throw new AppError(error.message || 'Falha ao anular aviso financeiro.');
+    }
+  },
 };

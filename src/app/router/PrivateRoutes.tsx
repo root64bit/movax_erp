@@ -24,10 +24,6 @@ import type {
 } from '@/shared/types/domain.types';
 import {
   loadAppData,
-  saveStockGuide,
-  cancelFinancialAdvice,
-  saveCompanyQuotationSettings,
-  setOperationalContext,
   type AppDataScope,
 } from '@/lib/appData';
 import { AuthService } from '@/features/auth';
@@ -184,7 +180,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
       warehouses={userContext?.warehouses}
       activeWarehouseId={userContext?.activeWarehouse?.id}
       onSelectWarehouse={async (id) => {
-        await setOperationalContext(id);
+        await AdministrationService.setOperationalContext(id);
         await refreshData('all');
       }}
       onSignOut={() => void AuthService.signOut()}
@@ -288,7 +284,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
             warehouses={userContext?.warehouses || []}
             operatorName={userContext?.fullName || 'Operador'}
             onSaveGuide={async (g) => {
-              const res = await saveStockGuide(g);
+              const res = await StockTransfersService.saveStockGuide(g);
               await refreshData('stock');
               return res;
             }}
@@ -296,11 +292,10 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
               await StockTransfersService.cancelStockGuide(id, reason);
               await refreshData('stock');
             }}
-            onOpenDocument={(doc: any) => setPrintRecord(doc)}
-            canPostEntry={permissions.includes('stock.direct_entry')}
-            canPostExit={permissions.includes('stock.direct_exit')}
+            onOpenDocument={(doc) => setPrintRecord(doc)}
+            canPostEntry={permissions.includes('stock.entry')}
+            canPostExit={permissions.includes('stock.exit')}
             canAllowNegative={permissions.includes('stock.negative')}
-            canViewCost={permissions.includes('reports.stock')}
             canCancelGuide={permissions.includes('stock.cancel')}
             canTransfer={permissions.includes('stock.transfer') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
           />
@@ -347,7 +342,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
             }}
             canCancelAdvice={permissions.includes('documents.cancel')}
             onCancelAdvice={async (id, reason) => {
-              await cancelFinancialAdvice(id, reason, crypto.randomUUID());
+              await DocumentsService.cancelFinancialAdvice(id, reason);
               await refreshData('documents');
             }}
             onUpdateDocument={async (id, payload) => {
@@ -438,7 +433,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
               await refreshData('users');
             }}
             onSaveCompanySettings={async (settings) => {
-              await saveCompanyQuotationSettings(company.id || 'default-company', settings as any);
+              await QuotationService.saveCompanyQuotationSettings(company.id || 'default-company', settings as any);
               await refreshData('all');
             }}
           />

@@ -37,6 +37,41 @@ export interface SaveArticleInput {
   unitId?: string;
 }
 
+export interface StockMovementsPageResult {
+  rows: StockMovement[];
+  totalCount: number;
+  totalStock: number;
+}
+
+export interface StockExtractResult {
+  opening_balance: number;
+  current_stock?: number;
+  movement_count?: number;
+  totals: {
+    total_in_qty: number;
+    total_out_qty: number;
+    total_in_val: number;
+    total_out_val: number;
+  };
+  movements: Array<{
+    id: string;
+    created_at: string;
+    doc_ref: string;
+    doc_type_code?: string;
+    doc_type_name?: string;
+    source_document_id?: string;
+    movement_direction: 'ENTRADA' | 'SAIDA';
+    quantity_in: number;
+    quantity_out: number;
+    running_balance: number;
+    unit_cost?: number;
+    movement_value?: number;
+    operator_name?: string;
+  }>;
+  total_count?: number;
+  can_view_cost?: boolean;
+}
+
 export const InventoryService = {
   async fetchProductsPage(params: {
     search?: string;
@@ -200,5 +235,83 @@ export const InventoryService = {
       balanceAfter: numberValue(row.running_balance),
       unitCost: numberValue(row.unit_cost),
     }));
+  },
+
+  async fetchStockMovementsPage(
+    from: string,
+    to: string,
+    movementType: 'ALL' | 'entrada' | 'saida',
+    search: string,
+    limit: number,
+    offset: number
+  ): Promise<StockMovementsPageResult> {
+    const client = requireSupabase();
+    const { data, error } = await client.rpc('get_stock_movements_page_v2', {
+      p_from: from || null,
+      p_to: to || null,
+      p_movement_type: movementType === 'entrada' ? 'ENTRADA' : movementType === 'saida' ? 'SAIDA' : 'ALL',
+      p_search: search.trim() || null,
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    if (error) {
+      logger.error('Failed to fetch stock movements page', error, { module: 'InventoryService' });
+      throw new AppError(error.message || 'Falha ao carregar histórico de movimentos.');
+    }
+
+    const result = data as Record<string, any>;
+    return {
+      totalCount: numberValue(result.total_count),
+      totalStock: numberValue(result.total_stock),
+      rows: ((result.rows ?? []) as Record<string, any>[]).map((row) => ({
+        id: String(row.id),
+        productId: String(row.product_id),
+        type: row.movement_direction === 'ENTRADA' ? 'entrada' : 'saida',
+        docRef: String(row.doc_ref ?? ''),
+        sourceDocumentId: row.source_document_id ? String(row.source_document_id) : undefined,
+        docTypeCode: row.doc_type_code ? String(row.doc_type_code) : undefined,
+        docTypeName: row.doc_type_name ? String(row.doc_type_name) : undefined,
+        date: String(row.created_at),
+        articleCode: String(row.product_code ?? ''),
+        articleDescription: String(row.product_description ?? ''),
+        quantity: Math.max(numberValue(row.quantity_in), numberValue(row.quantity_out)),
+        quantityIn: numberValue(row.quantity_in),
+        quantityOut: numberValue(row.quantity_out),
+        balanceAfter: numberValue(row.balance_after),
+        entityName: '',
+        operator: String(row.operator_name ?? 'Sistema'),
+        warehouseId: row.warehouse_id ? String(row.warehouse_id) : undefined,
+        warehouseName: row.warehouse_name ? String(row.warehouse_name) : undefined,
+        reason: String(row.reason ?? ''),
+        unitCost: numberValue(row.unit_cost),
+      })),
+    };
+  },
+
+  async fetchStockMovementExtract(
+    productId: string,
+    from?: string,
+    to?: string,
+    movementType = 'ALL',
+    limit = 100,
+    offset = 0
+  ): Promise<StockExtractResult> {
+    const client = requireSupabase();
+    const { data, error } = await client.rpc('get_stock_movement_extract_v2', {
+      p_product_id: productId,
+      p_from: from || null,
+      p_to: to || null,
+      p_movement_type: movementType,
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    if (error) {
+      logger.error('Failed to fetch stock movement extract', error, { module: 'InventoryService', productId });
+      throw new AppError(error.message || 'Falha ao carregar extracto de stock.');
+    }
+
+    return data as StockExtractResult;
   },
 };
