@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DEFAULT_SUBSCRIPTION_PLANS, OnboardingService } from '../services/onboarding.service';
+import { MpesaService, normalizeMsisdn, validateMsisdn, generateMpesaRef } from '@/integrations/mpesa';
 import type { SubscriptionPlanCode, TenantOnboardingInput } from '@/shared/types/domain.types';
 
 interface RegisterPageProps {
@@ -30,6 +31,9 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   // Step 4: Pagamento
   const [paymentMethod, setPaymentMethod] = useState<'M_PESA' | 'BANK_TRANSFER'>('M_PESA');
   const [mpesaNumber, setMpesaNumber] = useState('');
+  const [mpesaWaitingPrompt, setMpesaWaitingPrompt] = useState(false);
+  const [mpesaTransactionId, setMpesaTransactionId] = useState<string | null>(null);
+  const [mpesaCountdown, setMpesaCountdown] = useState(60);
 
   // Status
   const [loading, setLoading] = useState(false);
@@ -47,6 +51,14 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       setBillingCycle(cycleParam);
     }
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (mpesaWaitingPrompt && mpesaCountdown > 0) {
+      timer = setTimeout(() => setMpesaCountdown((c) => c - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [mpesaWaitingPrompt, mpesaCountdown]);
 
   const handleNav = (route: string) => {
     if (onNavigate) {
@@ -95,10 +107,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   };
 
   const validateStep4 = () => {
-    if (paymentMethod === 'M_PESA') {
-      const cleanPhone = mpesaNumber.replace(/\D/g, '');
-      if (cleanPhone.length < 9) {
-        setError('Introduza um número M-Pesa válido de Moçambique (84/85 xxx xxxx).');
+    if (paymentMethod === 'M_PESA' && priceDue > 0) {
+      const normalized = normalizeMsisdn(mpesaNumber);
+      if (!validateMsisdn(normalized)) {
+        setError('Introduza um número M-Pesa válido de Moçambique (ex: 84 123 4567 ou 85 123 4567).');
         return false;
       }
     }
@@ -118,6 +130,28 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     setStep((s) => Math.max(s - 1, 1));
   };
 
+  const executeProvisioning = async (txId?: string) => {
+    const payload: TenantOnboardingInput = {
+      companyName: companyName.trim(),
+      taxNumber: taxNumber.trim(),
+      city: city.trim(),
+      address: address.trim() || undefined,
+      phone: phone.trim() || undefined,
+      currency,
+      adminFullName: adminFullName.trim(),
+      adminEmail: adminEmail.trim().toLowerCase(),
+      adminPassword,
+      planCode,
+      billingCycle,
+      paymentMethod,
+      mpesaNumber: paymentMethod === 'M_PESA' ? normalizeMsisdn(mpesaNumber) : undefined,
+    };
+
+    await OnboardingService.provisionTenant(payload);
+    setMpesaWaitingPrompt(false);
+    setSuccess(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep4()) return;
@@ -125,26 +159,27 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     setLoading(true);
     setError('');
     try {
-      const payload: TenantOnboardingInput = {
-        companyName: companyName.trim(),
-        taxNumber: taxNumber.trim(),
-        city: city.trim(),
-        address: address.trim() || undefined,
-        phone: phone.trim() || undefined,
-        currency,
-        adminFullName: adminFullName.trim(),
-        adminEmail: adminEmail.trim().toLowerCase(),
-        adminPassword,
-        planCode,
-        billingCycle,
-        paymentMethod,
-        mpesaNumber: paymentMethod === 'M_PESA' ? mpesaNumber.trim() : undefined,
-      };
+      if (paymentMethod === 'M_PESA' && priceDue > 0) {
+        setMpesaWaitingPrompt(true);
+        setMpesaCountdown(60);
 
-      await OnboardingService.provisionTenant(payload);
-      setSuccess(true);
+        const mpesaResult = await MpesaService.initiateC2BPayment({
+          amount: priceDue,
+          msisdn: mpesaNumber,
+          reference: generateMpesaRef('RG'),
+          thirdPartyRef: generateMpesaRef('MS'),
+        });
+
+        if (mpesaResult.success) {
+          setMpesaTransactionId(mpesaResult.transactionId || 'M-PESA-OK');
+          await executeProvisioning(mpesaResult.transactionId || undefined);
+        }
+      } else {
+        await executeProvisioning();
+      }
     } catch (err: any) {
-      setError(err.message || 'Erro ao processar o registo da empresa.');
+      setMpesaWaitingPrompt(false);
+      setError(err.message || 'Erro ao processar o registo e pagamento da empresa.');
     } finally {
       setLoading(false);
     }
@@ -153,24 +188,40 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   if (success) {
     return (
       <div className="min-h-screen bg-background text-on-background flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md bg-surface dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-3xl p-8 text-center shadow-xl space-y-6">
-          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 grid place-items-center mx-auto">
+        <div className="w-full max-w-md bg-surface dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-3xl p-8 text-center shadow-xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 grid place-items-center mx-auto shadow-inner">
             <span className="material-symbols-outlined text-3xl">check_circle</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">Registo Concluído!</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">Registo & Pagamento Concluído!</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             A sua empresa <strong className="text-primary">{companyName}</strong> e a conta de administrador foram provisionadas com sucesso no plano <strong className="text-primary">{selectedPlanObj.name}</strong>.
           </p>
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs text-slate-600 dark:text-slate-400 text-left space-y-1.5">
-            <p><strong>Email:</strong> {adminEmail}</p>
-            <p><strong>NUIT:</strong> {taxNumber}</p>
-            <p><strong>Ciclo:</strong> {billingCycle === 'ANNUAL' ? 'Anual (-15%)' : 'Mensal'}</p>
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl text-xs text-slate-600 dark:text-slate-400 text-left space-y-2 border border-outline-variant dark:border-slate-800">
+            <div className="flex justify-between">
+              <span className="font-bold text-slate-500">Email:</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{adminEmail}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-bold text-slate-500">NUIT:</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{taxNumber}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-bold text-slate-500">Ciclo de Faturação:</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{billingCycle === 'ANNUAL' ? 'Anual (-15%)' : 'Mensal'}</span>
+            </div>
+            {mpesaTransactionId && (
+              <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-2 text-emerald-700 dark:text-emerald-400 font-bold">
+                <span>Comprovativo M-Pesa:</span>
+                <span>{mpesaTransactionId}</span>
+              </div>
+            )}
           </div>
           <button
             onClick={() => handleNav('login')}
-            className="w-full py-3.5 bg-primary hover:bg-primary-container text-white font-black rounded-xl shadow-md transition-all"
+            className="w-full py-3.5 bg-primary hover:bg-primary-container text-white font-black rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
           >
-            Iniciar Sessão no Movax ERP
+            <span>Iniciar Sessão no Movax ERP</span>
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>
         </div>
       </div>
@@ -512,74 +563,104 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Método de Liquidação
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('M_PESA')}
-                      className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                        paymentMethod === 'M_PESA'
-                          ? 'border-red-600 bg-red-50 text-red-700 ring-2 ring-red-500/20'
-                          : 'border-outline-variant text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-                      <span>M-Pesa (Vodacom)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('BANK_TRANSFER')}
-                      className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                        paymentMethod === 'BANK_TRANSFER'
-                          ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20'
-                          : 'border-outline-variant text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-sm">account_balance</span>
-                      <span>Transferência Bancária</span>
-                    </button>
+                {mpesaWaitingPrompt ? (
+                  <div className="p-5 rounded-2xl bg-rose-50/80 dark:bg-rose-950/30 border-2 border-rose-500/40 text-center space-y-3 animate-in fade-in zoom-in-95">
+                    <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center mx-auto shadow-md animate-pulse">
+                      <span className="material-symbols-outlined text-2xl">phonelink_ring</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                        Pedido Push Enviado para o seu Telemóvel!
+                      </h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                        Enviámos um pedido de pagamento de <strong className="text-red-700 dark:text-red-400 font-black">{priceDue.toLocaleString('pt-MZ')} MT</strong> para o número <strong className="font-mono">{normalizeMsisdn(mpesaNumber)}</strong>.
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-red-200 dark:border-red-900 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                      <p className="font-bold flex items-center justify-center gap-1.5 text-red-600">
+                        <span className="material-symbols-outlined text-sm">lock</span>
+                        <span>Introduza o seu PIN M-Pesa no telemóvel para confirmar</span>
+                      </p>
+                      <p className="text-[11px] text-slate-400">Tempo de espera: {mpesaCountdown}s</p>
+                    </div>
                   </div>
-
-                  {paymentMethod === 'M_PESA' && (
-                    <div className="pt-2 animate-fadeIn space-y-2">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                        Número de Telefone M-Pesa (84/85 xxx xxxx) *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="Ex: 84 123 4567"
-                        value={mpesaNumber}
-                        onChange={(e) => setMpesaNumber(e.target.value)}
-                        className="w-full rounded-xl border border-outline-variant dark:border-slate-800 bg-background px-3.5 py-2.5 text-xs sm:text-sm font-medium focus:border-primary focus:outline-none"
-                      />
-                      <p className="text-[11px] text-slate-500">
-                        Receberá uma notificação USSD no telemóvel para autorizar a liquidação com o seu PIN M-Pesa.
-                      </p>
+                ) : (
+                  <div className="space-y-3 pt-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Método de Liquidação
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('M_PESA')}
+                        className={`p-3.5 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                          paymentMethod === 'M_PESA'
+                            ? 'border-red-600 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 ring-2 ring-red-500/20'
+                            : 'border-outline-variant text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className="w-3 h-3 rounded-full bg-red-600"></span>
+                        <span>M-Pesa (Vodacom)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('BANK_TRANSFER')}
+                        className={`p-3.5 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                          paymentMethod === 'BANK_TRANSFER'
+                            ? 'border-primary bg-primary/5 text-primary ring-2 ring-primary/20'
+                            : 'border-outline-variant text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-sm">account_balance</span>
+                        <span>Transferência Bancária</span>
+                      </button>
                     </div>
-                  )}
 
-                  {paymentMethod === 'BANK_TRANSFER' && (
-                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                      <p><strong>Banco:</strong> BCI Moçambique</p>
-                      <p><strong>Conta:</strong> 1234567890</p>
-                      <p><strong>NIB:</strong> 0008.0000.1234.5678.9012.3</p>
-                      <p className="text-[10px] text-slate-500 pt-1">
-                        A conta será ativada e a fatura emitida assim que o comprovativo for reconciliado.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    {paymentMethod === 'M_PESA' && (
+                      <div className="pt-2 animate-fadeIn space-y-2">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Número de Telefone M-Pesa (84/85 xxx xxxx) *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                            +258
+                          </span>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="84 123 4567"
+                            value={mpesaNumber}
+                            onChange={(e) => setMpesaNumber(e.target.value)}
+                            className="w-full rounded-xl border border-outline-variant dark:border-slate-800 bg-background pl-14 pr-3.5 py-2.5 text-xs sm:text-sm font-bold font-mono focus:border-red-600 focus:outline-none"
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs text-emerald-600">verified</span>
+                          <span>Receberá imediatamente um pedido USSD no telemóvel para autorizar com o seu PIN M-Pesa.</span>
+                        </p>
+                      </div>
+                    )}
+
+                    {paymentMethod === 'BANK_TRANSFER' && (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                        <p><strong>Banco:</strong> BCI Moçambique</p>
+                        <p><strong>Conta:</strong> 1234567890</p>
+                        <p><strong>NIB:</strong> 0008.0000.1234.5678.9012.3</p>
+                        <p className="text-[10px] text-slate-500 pt-1">
+                          A conta será ativada e a fatura emitida assim que o comprovativo for reconciliado.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Error Display */}
             {error && (
-              <div className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold">
-                {error}
+              <div className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold flex items-start gap-2">
+                <span className="material-symbols-outlined text-base mt-0.5">error</span>
+                <span>{error}</span>
               </div>
             )}
 
@@ -616,9 +697,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2.5 bg-primary hover:bg-primary-container text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-60 ml-auto"
+                  className={`px-6 py-2.5 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-60 ml-auto flex items-center gap-2 ${
+                    paymentMethod === 'M_PESA'
+                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/20'
+                      : 'bg-primary hover:bg-primary-container text-white'
+                  }`}
                 >
-                  {loading ? 'A processar...' : 'Concluir e Ativar Empresa'}
+                  {loading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>A processar M-Pesa...</span>
+                    </>
+                  ) : paymentMethod === 'M_PESA' ? (
+                    <>
+                      <span className="material-symbols-outlined text-sm">phonelink_ring</span>
+                      <span>Pagar com M-Pesa ({priceDue.toLocaleString('pt-MZ')} MT)</span>
+                    </>
+                  ) : (
+                    <span>Concluir e Ativar Empresa</span>
+                  )}
                 </button>
               )}
             </div>
