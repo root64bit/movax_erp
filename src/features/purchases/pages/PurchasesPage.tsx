@@ -9,8 +9,10 @@ import type {
 } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
 import { Pagination } from '@/components/Pagination';
+import { calculateOffset } from '@/shared/utils/pagination';
 import { ArticleSearchSelect } from '@/features/inventory/components/ArticleSearchSelect';
 import { InventoryService } from '@/features/inventory/services/inventory.service';
+import { PurchasesService } from '../services/purchases.service';
 import { exportToExcel, exportToWord, exportToPdf } from '@/shared/utils/export.utils';
 
 export interface PurchasesProps {
@@ -106,25 +108,39 @@ export const Purchases: React.FC<PurchasesProps> = ({
 
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(25);
+  const [serverPurchases, setServerPurchases] = useState<DocumentRecord[]>([]);
+  const [serverPurchasesTotal, setServerPurchasesTotal] = useState(0);
+  const [loadingPurchases, setLoadingPurchases] = useState(false);
 
-  const supplierDocuments = useMemo(() => {
-    let list = documents.filter((document) => document.typeCode.startsWith('SUPPLIER_'));
-    if (dateFilter) {
-      list = list.filter((doc) => doc.date.startsWith(dateFilter));
+  const loadPurchases = async () => {
+    try {
+      setLoadingPurchases(true);
+      const offset = calculateOffset(historyPage, historyPageSize);
+      const res = await PurchasesService.fetchPurchasesPage({
+        date: dateFilter || undefined,
+        limit: historyPageSize,
+        offset,
+      });
+      setServerPurchases(res.rows);
+      setServerPurchasesTotal(res.totalCount);
+    } catch {
+      const fallbackList = (documents || []).filter(
+        (d) => d.typeCode.startsWith('SUPPLIER_') && (!dateFilter || d.date.startsWith(dateFilter)),
+      );
+      setServerPurchases(fallbackList.slice(0, historyPageSize));
+      setServerPurchasesTotal(fallbackList.length);
+    } finally {
+      setLoadingPurchases(false);
     }
-    return list;
-  }, [documents, dateFilter]);
+  };
+
+  useEffect(() => {
+    void loadPurchases();
+  }, [dateFilter, historyPage, historyPageSize]);
 
   useEffect(() => {
     setHistoryPage(1);
   }, [dateFilter, historyPageSize]);
-
-  const totalHistoryPages = Math.max(1, Math.ceil(supplierDocuments.length / historyPageSize));
-  const safeHistoryPage = Math.min(historyPage, totalHistoryPages);
-  const pagedSupplierDocuments = useMemo(
-    () => supplierDocuments.slice((safeHistoryPage - 1) * historyPageSize, safeHistoryPage * historyPageSize),
-    [supplierDocuments, safeHistoryPage, historyPageSize]
-  );
 
   // Totals in MZN and Foreign Currency
   const totalMzn = items.reduce((sum, item) => sum + item.total, 0);
@@ -310,7 +326,7 @@ export const Purchases: React.FC<PurchasesProps> = ({
         title: 'Histórico de Compras a Fornecedores',
         date: new Date().toLocaleDateString('pt-MZ'),
         headers: ['Documento', 'Fornecedor', 'Estado', 'Total (MZN)', 'Pendente (MZN)'],
-        rows: supplierDocuments.map((d) => [
+        rows: serverPurchases.map((d) => [
           d.displayNumber,
           d.partyName,
           d.status,
@@ -320,11 +336,11 @@ export const Purchases: React.FC<PurchasesProps> = ({
         totals: [
           {
             label: 'Total Faturado',
-            value: supplierDocuments.reduce((s, d) => s + d.grandTotal, 0).toFixed(2),
+            value: serverPurchases.reduce((s, d) => s + d.grandTotal, 0).toFixed(2),
           },
           {
             label: 'Total Pendente',
-            value: supplierDocuments.reduce((s, d) => s + d.outstandingAmount, 0).toFixed(2),
+            value: serverPurchases.reduce((s, d) => s + d.outstandingAmount, 0).toFixed(2),
           },
         ],
       },
@@ -338,7 +354,7 @@ export const Purchases: React.FC<PurchasesProps> = ({
         title: 'Relatório de Compras a Fornecedores',
         date: new Date().toLocaleDateString('pt-MZ'),
         headers: ['Documento', 'Fornecedor', 'Estado', 'Total (MZN)', 'Pendente (MZN)'],
-        rows: supplierDocuments.map((d) => [
+        rows: serverPurchases.map((d) => [
           d.displayNumber,
           d.partyName,
           d.status,
@@ -348,7 +364,11 @@ export const Purchases: React.FC<PurchasesProps> = ({
         totals: [
           {
             label: 'Total Faturado',
-            value: supplierDocuments.reduce((s, d) => s + d.grandTotal, 0).toFixed(2),
+            value: serverPurchases.reduce((s, d) => s + d.grandTotal, 0).toFixed(2),
+          },
+          {
+            label: 'Total Pendente',
+            value: serverPurchases.reduce((s, d) => s + d.outstandingAmount, 0).toFixed(2),
           },
         ],
       },
@@ -361,7 +381,7 @@ export const Purchases: React.FC<PurchasesProps> = ({
       title: 'Mapa de Compras & Facturas de Fornecedor',
       date: new Date().toLocaleDateString('pt-MZ'),
       headers: ['Nº Documento', 'Fornecedor', 'Estado', 'Total (MZN)', 'Pendente (MZN)'],
-      rows: supplierDocuments.map((d) => [
+      rows: serverPurchases.map((d) => [
         d.displayNumber,
         d.partyName,
         d.status,
@@ -371,11 +391,11 @@ export const Purchases: React.FC<PurchasesProps> = ({
       totals: [
         {
           label: 'Total Compras',
-          value: supplierDocuments.reduce((s, d) => s + d.grandTotal, 0).toFixed(2),
+          value: serverPurchases.reduce((s, d) => s + d.grandTotal, 0).toFixed(2),
         },
         {
           label: 'Saldo Devedor a Fornecedores',
-          value: supplierDocuments.reduce((s, d) => s + d.outstandingAmount, 0).toFixed(2),
+          value: serverPurchases.reduce((s, d) => s + d.outstandingAmount, 0).toFixed(2),
         },
       ],
     });
@@ -848,38 +868,46 @@ export const Purchases: React.FC<PurchasesProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#c3c6d1] dark:divide-[#43474f]">
-              {pagedSupplierDocuments.map((document) => (
-                <tr key={document.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e]">
-                  <td className="p-3 font-mono font-bold text-[#003366] dark:text-[#a7c8ff]">{document.displayNumber}</td>
-                  <td className="p-3">{document.partyName}</td>
-                  <td className="p-3">
-                    <span className="rounded bg-[#e7e8e9] px-2 py-1 text-[10px] font-black">{document.status}</span>
-                  </td>
-                  <td className="p-3 text-right font-mono font-bold">{formatMZN(document.grandTotal)}</td>
-                  <td className="p-3 text-right font-mono font-bold text-red-600">{formatMZN(document.outstandingAmount)}</td>
-                  <td className="p-3 text-right">
-                    {canPay && document.outstandingAmount > 0 && (
-                      <button
-                        disabled={payingId === document.id}
-                        onClick={() => void payInvoice(document)}
-                        className="rounded bg-[#003366] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50 hover:bg-blue-800 cursor-pointer"
-                      >
-                        {payingId === document.id ? 'A pagar…' : 'Pagar'}
-                      </button>
-                    )}
+              {loadingPurchases ? (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-slate-400">
+                    A carregar histórico de compras...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                serverPurchases.map((document) => (
+                  <tr key={document.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e]">
+                    <td className="p-3 font-mono font-bold text-[#003366] dark:text-[#a7c8ff]">{document.displayNumber}</td>
+                    <td className="p-3">{document.partyName}</td>
+                    <td className="p-3">
+                      <span className="rounded bg-[#e7e8e9] px-2 py-1 text-[10px] font-black">{document.status}</span>
+                    </td>
+                    <td className="p-3 text-right font-mono font-bold">{formatMZN(document.grandTotal)}</td>
+                    <td className="p-3 text-right font-mono font-bold text-red-600">{formatMZN(document.outstandingAmount)}</td>
+                    <td className="p-3 text-right">
+                      {canPay && document.outstandingAmount > 0 && (
+                        <button
+                          disabled={payingId === document.id}
+                          onClick={() => void payInvoice(document)}
+                          className="rounded bg-[#003366] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50 hover:bg-blue-800 cursor-pointer"
+                        >
+                          {payingId === document.id ? 'A pagar…' : 'Pagar'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-        {pagedSupplierDocuments.length === 0 && (
+        {!loadingPurchases && serverPurchases.length === 0 && (
           <p className="p-6 text-center text-sm text-[#737780]">Sem documentos de fornecedor para a data selecionada.</p>
         )}
         <div className="border-t border-[#c3c6d1] bg-slate-50/70 px-3 dark:border-[#43474f] dark:bg-[#1b2023] mt-2">
           <Pagination
-            currentPage={safeHistoryPage}
-            totalItems={supplierDocuments.length}
+            currentPage={historyPage}
+            totalItems={serverPurchasesTotal}
             pageSize={historyPageSize}
             onPageChange={setHistoryPage}
             onPageSizeChange={setHistoryPageSize}

@@ -2,6 +2,7 @@ import { requireSupabase } from '@/integrations/supabase/client';
 import { numberValue } from '@/integrations/supabase/helpers';
 import { logger } from '@/shared/lib/logger';
 import { AppError, ValidationError } from '@/shared/utils/errorUtils';
+import { sanitizePostgrestSearch } from '@/shared/utils/pagination';
 import type { Client, Supplier, PartyInput } from '@/shared/types/domain.types';
 
 export const PartiesService = {
@@ -118,8 +119,10 @@ export const PartiesService = {
       .eq('active', true);
 
     if (params.search?.trim()) {
-      const term = params.search.trim();
-      query = query.or(`name.ilike.%${term}%,customer_number.ilike.%${term}%,tax_number.ilike.%${term}%,telephone.ilike.%${term}%`);
+      const term = sanitizePostgrestSearch(params.search);
+      if (term) {
+        query = query.or(`name.ilike.%${term}%,customer_number.ilike.%${term}%,tax_number.ilike.%${term}%,telephone.ilike.%${term}%`);
+      }
     }
 
     const { data, count, error } = await query
@@ -167,8 +170,10 @@ export const PartiesService = {
       .eq('active', true);
 
     if (params.search?.trim()) {
-      const term = params.search.trim();
-      query = query.or(`name.ilike.%${term}%,supplier_number.ilike.%${term}%,tax_number.ilike.%${term}%,telephone.ilike.%${term}%`);
+      const term = sanitizePostgrestSearch(params.search);
+      if (term) {
+        query = query.or(`name.ilike.%${term}%,supplier_number.ilike.%${term}%,tax_number.ilike.%${term}%,telephone.ilike.%${term}%`);
+      }
     }
 
     const { data, count, error } = await query

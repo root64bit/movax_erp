@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Article, DocumentRecord, SaleInvoice, SaleItem } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
 import { Pagination } from '@/components/Pagination';
+import { calculateOffset } from '@/shared/utils/pagination';
+import { DocumentsService } from '../services/documents.service';
 import { ArticleSearchSelect } from '@/features/inventory/components/ArticleSearchSelect';
 import { requireSupabase } from '@/integrations/supabase/client';
 import { calculateDocumentLine, calculateDocumentTotals, recalculateSaleItem, recalculateSaleItems } from '@/lib/documentCalculations';
@@ -73,46 +75,65 @@ export function Documents({
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [serverDocuments, setServerDocuments] = useState<DocumentRecord[]>([]);
+  const [serverDocumentsTotal, setServerDocumentsTotal] = useState(0);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return documents.filter((document) => {
-      const isGuiaOrCotacao =
-        document.typeCode === 'CUSTOMER_DELIVERY_NOTE' ||
-        document.typeCode === 'CUSTOMER_QUOTATION' ||
-        document.typeCode === 'QUOTATION' ||
-        document.typeCode === 'COT' ||
-        document.displayNumber.startsWith('GR') ||
-        document.displayNumber.startsWith('COT') ||
-        document.displayNumber.startsWith('CO/') ||
-        (document.typeName && (document.typeName.toLowerCase().includes('guia') || document.typeName.toLowerCase().includes('cotação') || document.typeName.toLowerCase().includes('cotacao')));
+  // 300ms Debounce on text search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-      if (isCashier && !isGuiaOrCotacao) {
-        return false;
-      }
+  const loadDocuments = async () => {
+    try {
+      setLoadingDocuments(true);
+      const offset = calculateOffset(page, pageSize);
+      const res = await DocumentsService.fetchDocumentsPage({
+        limit: pageSize,
+        offset,
+        search: debouncedSearch || undefined,
+        partyType: partyType !== 'ALL' ? partyType : undefined,
+        status: status !== 'ALL' ? status : undefined,
+        typeCode: typeFilter !== 'ALL' ? typeFilter : undefined,
+        isCashier,
+      });
+      setServerDocuments(res.rows);
+      setServerDocumentsTotal(res.totalCount);
+    } catch {
+      // Graceful fallback to passed documents prop if offline or testing
+      const term = (debouncedSearch || '').toLowerCase();
+      const fallbackList = (documents || []).filter((d) => {
+        const matches =
+          !term ||
+          d.displayNumber.toLowerCase().includes(term) ||
+          d.partyName.toLowerCase().includes(term) ||
+          (d.partyCode && d.partyCode.toLowerCase().includes(term)) ||
+          d.typeName.toLowerCase().includes(term);
+        return (
+          matches &&
+          (partyType === 'ALL' || d.partyType === partyType) &&
+          (status === 'ALL' || d.status === status) &&
+          (typeFilter === 'ALL' || d.typeName === typeFilter || d.typeCode === typeFilter)
+        );
+      });
+      setServerDocuments(fallbackList.slice(0, pageSize));
+      setServerDocumentsTotal(fallbackList.length);
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
 
-      const matchesSearch =
-        !term ||
-        document.displayNumber.toLowerCase().includes(term) ||
-        document.partyName.toLowerCase().includes(term) ||
-        (document.partyCode && document.partyCode.toLowerCase().includes(term)) ||
-        document.typeName.toLowerCase().includes(term);
-      return (
-        matchesSearch &&
-        (partyType === 'ALL' || document.partyType === partyType) &&
-        (status === 'ALL' || document.status === status) &&
-        (typeFilter === 'ALL' || document.typeName === typeFilter || document.typeCode === typeFilter)
-      );
-    });
-  }, [documents, partyType, search, status, typeFilter, isCashier]);
+  useEffect(() => {
+    void loadDocuments();
+  }, [debouncedSearch, partyType, status, typeFilter, page, pageSize, isCashier]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, partyType, status, typeFilter, pageSize]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pagedDocuments = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  }, [debouncedSearch, partyType, status, typeFilter, pageSize]);
 
   const handleExecuteCancel = async () => {
     if (!cancellingDoc || !cancelReason.trim() || isSubmittingCancel) return;
@@ -361,114 +382,138 @@ export function Documents({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#c3c6d1] dark:divide-[#43474f]">
-              {pagedDocuments.map((document) => {
-                const printable = sales.find((sale) => sale.id === document.id);
-                const isAdviceDoc = document.typeCode === 'CUSTOMER_CREDIT_NOTE' || document.typeCode === 'SUPPLIER_CREDIT_ADVICE';
-                const canCancelThisDoc = canCancelAdvice && isAdviceDoc && document.status === 'CONFIRMED';
-                const isOperationalSalesDoc = ['CUSTOMER_INVOICE','CASH_SALE','CUSTOMER_DELIVERY_NOTE','CUSTOMER_QUOTATION','QUOTATION','COT'].includes(document.typeCode);
-                const canAdminCancelThisDoc = canCancelDocument && isOperationalSalesDoc && ['CONFIRMED','PAID','PARTIALLY_PAID','OVERDUE'].includes(document.status);
-                const formattedDate = document.date ? document.date.substring(0, 10) : '—';
+              {loadingDocuments ? (
+                <tr>
+                  <td colSpan={9} className="p-8 text-center text-sm text-[#737780]">
+                    A carregar documentos...
+                  </td>
+                </tr>
+              ) : (
+                serverDocuments.map((document) => {
+                  const printable = sales.find((sale) => sale.id === document.id);
+                  const isAdviceDoc = document.typeCode === 'CUSTOMER_CREDIT_NOTE' || document.typeCode === 'SUPPLIER_CREDIT_ADVICE';
+                  const canCancelThisDoc = canCancelAdvice && isAdviceDoc && document.status === 'CONFIRMED';
+                  const isOperationalSalesDoc = ['CUSTOMER_INVOICE','CASH_SALE','CUSTOMER_DELIVERY_NOTE','CUSTOMER_QUOTATION','QUOTATION','COT'].includes(document.typeCode);
+                  const canAdminCancelThisDoc = canCancelDocument && isOperationalSalesDoc && ['CONFIRMED','PAID','PARTIALLY_PAID','OVERDUE'].includes(document.status);
+                  const formattedDate = document.date ? document.date.substring(0, 10) : '—';
 
-                return (
-                  <tr key={document.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e]">
-                    <td className="p-3 font-mono font-bold text-[#003366] dark:text-[#a7c8ff]">
-                      {document.displayNumber}
-                    </td>
-                    <td className="p-3 font-mono text-slate-700 dark:text-slate-300">
-                      {formattedDate}
-                    </td>
-                    <td className="p-3 font-bold">
-                      {document.typeCode === 'CUSTOMER_INVOICE'
-                        ? 'Factura (FT)'
-                        : document.typeCode === 'CASH_SALE'
-                        ? 'Venda a Dinheiro (VD)'
-                        : document.typeCode === 'CUSTOMER_DELIVERY_NOTE'
-                        ? 'Guia de Remessa (GR)'
-                        : document.typeCode === 'CUSTOMER_QUOTATION' || document.typeCode === 'QUOTATION' || document.typeCode === 'COT'
-                        ? 'Cotação'
-                        : document.typeCode === 'SUPPLIER_INVOICE'
-                        ? 'Factura de Fornecedor'
-                        : document.typeCode === 'CUSTOMER_CREDIT_NOTE'
-                        ? 'Nota de Crédito (NC)'
-                        : document.typeName || document.typeCode}
-                    </td>
-                    <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">
-                      {document.partyName || 'Cliente Pontual'}
-                    </td>
-                    <td className="p-3 text-right font-mono font-bold">{formatMZN(document.grandTotal)}</td>
-                    <td className="p-3 text-right font-mono text-[#006e25]">{formatMZN(document.paidAmount)}</td>
-                    <td className="p-3 text-right font-mono text-[#ba1a1a]">{formatMZN(document.outstandingAmount)}</td>
-                    <td className="p-3 text-center">
-                      <span className={`rounded px-2 py-1 text-[10px] font-black ${['CANCELLED','REVERSED'].includes(document.status) ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-[#e7e8e9] text-slate-800'}`}>
-                        {document.status}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex min-w-[168px] flex-wrap items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => printable ? onPrint(printable) : onPrintRecord(document)}
-                        className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-[#003366] px-3 font-bold text-white text-[11px] hover:bg-[#002244]"
-                      >
-                        Imprimir
-                      </button>
+                  return (
+                    <tr key={document.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e]">
+                      <td className="p-3 font-mono font-bold text-[#003366] dark:text-[#a7c8ff]">
+                        {document.displayNumber}
+                      </td>
+                      <td className="p-3 font-mono text-slate-700 dark:text-slate-300">
+                        {formattedDate}
+                      </td>
+                      <td className="p-3 font-bold">
+                        {document.typeCode === 'CUSTOMER_INVOICE'
+                          ? 'Factura (FT)'
+                          : document.typeCode === 'CASH_SALE'
+                          ? 'Venda a Dinheiro (VD)'
+                          : document.typeCode === 'CUSTOMER_DELIVERY_NOTE'
+                          ? 'Guia de Remessa (GR)'
+                          : document.typeCode === 'CUSTOMER_QUOTATION' || document.typeCode === 'QUOTATION' || document.typeCode === 'COT'
+                          ? 'Cotação'
+                          : document.typeCode === 'SUPPLIER_INVOICE'
+                          ? 'Factura de Fornecedor'
+                          : document.typeCode === 'CUSTOMER_CREDIT_NOTE'
+                          ? 'Nota de Crédito (NC)'
+                          : document.typeName || document.typeCode}
+                      </td>
+                      <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">
+                        {document.partyName || 'Cliente Pontual'}
+                      </td>
+                      <td className="p-3 text-right font-mono font-bold">{formatMZN(document.grandTotal)}</td>
+                      <td className="p-3 text-right font-mono text-[#006e25]">{formatMZN(document.paidAmount)}</td>
+                      <td className="p-3 text-right font-mono font-bold text-[#ba1a1a]">{formatMZN(document.outstandingAmount)}</td>
+                      <td className="p-3 text-center">
+                        <span
+                          className={`rounded px-2 py-1 text-[10px] font-black ${
+                            ['CONFIRMED', 'PAID'].includes(document.status)
+                              ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300'
+                              : document.status === 'PARTIALLY_PAID'
+                              ? 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-300'
+                              : ['CANCELLED', 'REVERSED'].includes(document.status)
+                              ? 'bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-300'
+                              : 'bg-[#e7e8e9] text-[#43474f] dark:bg-[#333739] dark:text-[#c3c6d1]'
+                          }`}
+                        >
+                          {document.status === 'CONFIRMED' || document.status === 'PAID'
+                            ? 'Emitido / Liquidado'
+                            : document.status === 'PARTIALLY_PAID'
+                            ? 'Parcialmente Pago'
+                            : document.status === 'CANCELLED' || document.status === 'REVERSED'
+                            ? 'Anulado'
+                            : document.status}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex min-w-[168px] flex-wrap items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => printable ? onPrint(printable) : onPrintRecord(document)}
+                            className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-[#003366] px-3 font-bold text-white text-[11px] hover:bg-[#002244]"
+                          >
+                            Imprimir
+                          </button>
 
-                      {!['CANCELLED','REVERSED'].includes(document.status) && isOperationalSalesDoc && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(document)}
-                          className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-amber-600 px-3 font-bold text-white text-[11px] hover:bg-amber-700 transition-colors"
-                        >
-                          Editar
-                        </button>
-                      )}
+                          {!['CANCELLED','REVERSED'].includes(document.status) && isOperationalSalesDoc && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(document)}
+                              className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-amber-600 px-3 font-bold text-white text-[11px] hover:bg-amber-700 transition-colors"
+                            >
+                              Editar
+                            </button>
+                          )}
 
-                      {!['CANCELLED','REVERSED'].includes(document.status) && !isOperationalSalesDoc && onUpdateDocument && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingDateOnlyDoc(document);
-                            setEditDateOnlyValue((document.date || new Date().toISOString()).slice(0,10));
-                            setEditDateOnlyError('');
-                          }}
-                          className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-amber-600 px-3 font-bold text-white text-[11px] hover:bg-amber-700 transition-colors"
-                        >
-                          Editar Data
-                        </button>
-                      )}
+                          {!['CANCELLED','REVERSED'].includes(document.status) && !isOperationalSalesDoc && onUpdateDocument && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingDateOnlyDoc(document);
+                                setEditDateOnlyValue((document.date || new Date().toISOString()).slice(0,10));
+                                setEditDateOnlyError('');
+                              }}
+                              className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-amber-600 px-3 font-bold text-white text-[11px] hover:bg-amber-700 transition-colors"
+                            >
+                              Editar Data
+                            </button>
+                          )}
 
-                      {canCancelThisDoc && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCancellingDoc(document);
-                            setCancelReason('');
-                            setCancelError('');
-                          }}
-                          className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-red-700 px-3 font-bold text-white text-[11px] hover:bg-red-800"
-                        >
-                          Cancelar
-                        </button>
-                      )}
-                      {canAdminCancelThisDoc && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCancellingDoc(document);
-                            setCancelReason('');
-                            setCancelError('');
-                          }}
-                          className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-red-700 px-3 font-bold text-white text-[11px] hover:bg-red-800"
-                        >
-                          Anular
-                        </button>
-                      )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {pagedDocuments.length === 0 && (
+                          {canCancelThisDoc && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCancellingDoc(document);
+                                setCancelReason('');
+                                setCancelError('');
+                              }}
+                              className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-red-700 px-3 font-bold text-white text-[11px] hover:bg-red-800"
+                            >
+                              Cancelar
+                            </button>
+                          )}
+                          {canAdminCancelThisDoc && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCancellingDoc(document);
+                                setCancelReason('');
+                                setCancelError('');
+                              }}
+                              className="inline-flex h-8 min-w-[78px] items-center justify-center rounded bg-red-700 px-3 font-bold text-white text-[11px] hover:bg-red-800"
+                            >
+                              Anular
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+              {!loadingDocuments && serverDocuments.length === 0 && (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-sm text-[#737780]">
                     Nenhum documento corresponde aos filtros.
@@ -480,8 +525,8 @@ export function Documents({
         </div>
         <div className="border-t border-[#c3c6d1] bg-slate-50/70 px-3 dark:border-[#43474f] dark:bg-[#1b2023]">
           <Pagination
-            currentPage={safePage}
-            totalItems={filtered.length}
+            currentPage={page}
+            totalItems={serverDocumentsTotal}
             pageSize={pageSize}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}

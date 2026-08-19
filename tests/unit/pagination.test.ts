@@ -1,25 +1,12 @@
 ﻿import { describe, it, expect } from 'vitest';
+import {
+  calculateOffset,
+  calculateTotalPages,
+  clampPage,
+  sanitizePostgrestSearch,
+} from '@/shared/utils/pagination';
 
-export function calculateOffset(page: number, pageSize: number): number {
-  const safePage = Math.max(1, Math.floor(page || 1));
-  const safePageSize = Math.max(1, Math.floor(pageSize || 25));
-  return (safePage - 1) * safePageSize;
-}
-
-export function calculateTotalPages(totalCount: number, pageSize: number): number {
-  const safeTotal = Math.max(0, Math.floor(totalCount || 0));
-  const safePageSize = Math.max(1, Math.floor(pageSize || 25));
-  return Math.max(1, Math.ceil(safeTotal / safePageSize));
-}
-
-export function clampPage(page: number, totalCount: number, pageSize: number): number {
-  const totalPages = calculateTotalPages(totalCount, pageSize);
-  if (page < 1) return 1;
-  if (page > totalPages) return totalPages;
-  return page;
-}
-
-describe('Server-Side Pagination & Large Dataset Engine', () => {
+describe('Server-Side Pagination & Large Dataset Engine (Production Utility)', () => {
   it('calculates deterministic offsets across pagination pages', () => {
     expect(calculateOffset(1, 25)).toBe(0);
     expect(calculateOffset(2, 25)).toBe(25);
@@ -56,14 +43,11 @@ describe('Server-Side Pagination & Large Dataset Engine', () => {
     expect(clampPage(2, 100, 25)).toBe(2);
   });
 
-  it('verifies that page slicing keeps memory footprint strictly constant (O(pageSize))', () => {
-    const hugeDatasetSize = 50000;
-    const pageSize = 25;
-    const offset = calculateOffset(10, pageSize);
-    const mockDbSlice = Array.from({ length: pageSize }, (_, i) => ({ id: `row-${offset + i}` }));
-
-    expect(mockDbSlice.length).toBe(25);
-    expect(mockDbSlice[0].id).toBe('row-225');
-    expect(mockDbSlice[24].id).toBe('row-249');
+  it('sanitizes special PostgREST characters safely for search queries', () => {
+    expect(sanitizePostgrestSearch('Mário & Filhos, Lda.')).toBe('Mário & Filhos Lda.');
+    expect(sanitizePostgrestSearch('Auto (Maputo)')).toBe('Auto Maputo');
+    expect(sanitizePostgrestSearch('100% Cotton_Fabric')).toBe('100 CottonFabric');
+    expect(sanitizePostgrestSearch('   Test   Query   ')).toBe('Test Query');
+    expect(sanitizePostgrestSearch('')).toBe('');
   });
 });

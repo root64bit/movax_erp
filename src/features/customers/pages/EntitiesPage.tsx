@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import type { Client, Supplier, DocumentRecord, LedgerRecord, PartyInput } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
 import { Pagination } from '@/components/Pagination';
+import { calculateOffset } from '@/shared/utils/pagination';
+import { PartiesService } from '../services/parties.service';
 import { FinancialAdviceDocument } from '@/features/documents/components/FinancialAdviceDocument';
 
 export interface EntitiesProps {
@@ -58,22 +60,71 @@ export const Entities: React.FC<EntitiesProps> = ({
   const [partyError, setPartyError] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [serverClients, setServerClients] = useState<Client[]>([]);
+  const [serverClientsTotal, setServerClientsTotal] = useState(0);
+  const [serverSuppliers, setServerSuppliers] = useState<Supplier[]>([]);
+  const [serverSuppliersTotal, setServerSuppliersTotal] = useState(0);
+  const [loadingParties, setLoadingParties] = useState(false);
+
+  // 300ms Debounce search input
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadParties = async () => {
+    try {
+      setLoadingParties(true);
+      const offset = calculateOffset(page, pageSize);
+      if (mainTab === 'CLIENTES') {
+        const res = await PartiesService.fetchCustomersPage({
+          search: debouncedSearch || undefined,
+          limit: pageSize,
+          offset,
+        });
+        setServerClients(res.rows);
+        setServerClientsTotal(res.totalCount);
+      } else {
+        const res = await PartiesService.fetchSuppliersPage({
+          search: debouncedSearch || undefined,
+          limit: pageSize,
+          offset,
+        });
+        setServerSuppliers(res.rows);
+        setServerSuppliersTotal(res.totalCount);
+      }
+    } catch {
+      // Graceful fallback to props if available
+      const term = (debouncedSearch || '').toLowerCase();
+      if (mainTab === 'CLIENTES') {
+        const list = (clients || []).filter(
+          (c) => !term || c.name.toLowerCase().includes(term) || c.nuit?.toLowerCase().includes(term),
+        );
+        setServerClients(list.slice(0, pageSize));
+        setServerClientsTotal(list.length);
+      } else {
+        const list = (suppliers || []).filter(
+          (s) => !term || s.name.toLowerCase().includes(term) || s.nuit?.toLowerCase().includes(term),
+        );
+        setServerSuppliers(list.slice(0, pageSize));
+        setServerSuppliersTotal(list.length);
+      }
+    } finally {
+      setLoadingParties(false);
+    }
+  };
+
+  React.useEffect(() => {
+    void loadParties();
+  }, [mainTab, debouncedSearch, page, pageSize]);
 
   React.useEffect(() => {
     setPage(1);
-  }, [mainTab, subTab, pageSize]);
-
-  const currentListLength = mainTab === 'CLIENTES' ? clients.length : suppliers.length;
-  const totalPages = Math.max(1, Math.ceil(currentListLength / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pagedClients = useMemo(
-    () => clients.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [clients, safePage, pageSize]
-  );
-  const pagedSuppliers = useMemo(
-    () => suppliers.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [suppliers, safePage, pageSize]
-  );
+  }, [mainTab, subTab, debouncedSearch, pageSize]);
 
   const openPartyEditor = (type: 'customer' | 'supplier', party: Client | Supplier) => {
     setEditingParty({ type, id: party.id });
@@ -265,13 +316,22 @@ export const Entities: React.FC<EntitiesProps> = ({
       {/* Render Subtab 1: Directory List */}
       {subTab === 'LIST' && (
         <section className="bg-white dark:bg-[#1f2325] border border-[#c3c6d1] dark:border-[#43474f] rounded overflow-hidden shadow-sm">
-          <div className="bg-[#e7e8e9] dark:bg-[#282c2e] px-4 py-3 flex justify-between items-center border-b border-[#c3c6d1] dark:border-[#43474f]">
-            <h3 className="font-bold text-[#001e40] dark:text-[#a7c8ff] flex items-center text-sm">
-              <span className="material-symbols-outlined mr-2">
-                {mainTab === 'CLIENTES' ? 'groups' : 'local_shipping'}
-              </span>
-              {mainTab === 'CLIENTES' ? `Directório de Clientes (${clients.length})` : `Directório de Fornecedores (${suppliers.length})`}
-            </h3>
+          <div className="bg-[#e7e8e9] dark:bg-[#282c2e] px-4 py-3 flex flex-wrap justify-between items-center gap-3 border-b border-[#c3c6d1] dark:border-[#43474f]">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="font-bold text-[#001e40] dark:text-[#a7c8ff] flex items-center text-sm">
+                <span className="material-symbols-outlined mr-2">
+                  {mainTab === 'CLIENTES' ? 'groups' : 'local_shipping'}
+                </span>
+                {mainTab === 'CLIENTES' ? `Directório de Clientes (${serverClientsTotal})` : `Directório de Fornecedores (${serverSuppliersTotal})`}
+              </h3>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={`Pesquisar ${mainTab === 'CLIENTES' ? 'cliente' : 'fornecedor'} (nome, NUIT, telefone)...`}
+                className="rounded border border-[#c3c6d1] dark:border-[#43474f] bg-white dark:bg-[#1f2325] px-2.5 py-1 text-xs outline-none focus:border-[#003366]"
+              />
+            </div>
             <span className="text-xs font-bold font-mono text-[#ba1a1a]">
               Total Pendente: {formatMZN(mainTab === 'CLIENTES' ? totalCustomerPending : totalSupplierPending)}
             </span>
@@ -291,82 +351,97 @@ export const Entities: React.FC<EntitiesProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#c3c6d1] dark:divide-[#43474f]">
-                {mainTab === 'CLIENTES'
-                  ? pagedClients.map((client) => (
-                      <tr key={client.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e] transition-colors">
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-bold text-[#191c1d] dark:text-white">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 rounded-full bg-[#003366] text-white flex items-center justify-center font-bold text-[11px]">
-                              {client.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
-                            </div>
-                            <div>
-                              <div className="text-[10px] font-mono text-slate-500">[{client.code || client.number || 'CL'}]</div>
-                              <span>{client.name}</span>
-                            </div>
+                {loadingParties ? (
+                  <tr>
+                    <td colSpan={isAdmin ? 7 : 6} className="p-8 text-center text-slate-400">
+                      A carregar entidades...
+                    </td>
+                  </tr>
+                ) : mainTab === 'CLIENTES' ? (
+                  serverClients.map((client) => (
+                    <tr key={client.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e] transition-colors">
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-bold text-[#191c1d] dark:text-white">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 rounded-full bg-[#003366] text-white flex items-center justify-center font-bold text-[11px]">
+                            {client.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-mono text-slate-500">[{client.code || client.number || 'CL'}]</div>
+                            <span>{client.name}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono text-[#003366] dark:text-[#a7c8ff]">
+                        {client.nuit || 'N/A'}
+                      </td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#737780]">{client.address || '—'}</td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono">{client.phone || '—'}</td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#003366] dark:text-[#a7c8ff]">{client.email || '—'}</td>
+                      <td className="p-3 text-right font-mono font-bold text-sm">
+                        <span className={client.pendingBalance > 0 ? 'text-[#ba1a1a]' : 'text-[#006e25]'}>
+                          {formatMZN(client.pendingBalance)}
+                        </span>
+                      </td>
+                      {isAdmin && (
+                        <td className="p-3">
+                          <div className="flex justify-center gap-1.5">
+                            <button type="button" onClick={() => openPartyEditor('customer', client)} className="h-8 rounded bg-amber-600 px-3 text-[11px] font-bold text-white hover:bg-amber-700">Editar</button>
+                            <button type="button" disabled={partySaving} onClick={() => void deactivateParty('customer', client)} className="h-8 rounded bg-red-700 px-3 text-[11px] font-bold text-white hover:bg-red-800 disabled:opacity-50">Apagar</button>
                           </div>
                         </td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono text-[#003366] dark:text-[#a7c8ff]">
-                          {client.nuit || 'N/A'}
-                        </td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#737780]">{client.address || '—'}</td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono">{client.phone || '—'}</td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#003366] dark:text-[#a7c8ff]">{client.email || '—'}</td>
-                        <td className="p-3 text-right font-mono font-bold text-sm">
-                          <span className={client.pendingBalance > 0 ? 'text-[#ba1a1a]' : 'text-[#006e25]'}>
-                            {formatMZN(client.pendingBalance)}
-                          </span>
-                        </td>
-                        {isAdmin && (
-                          <td className="p-3">
-                            <div className="flex justify-center gap-1.5">
-                              <button type="button" onClick={() => openPartyEditor('customer', client)} className="h-8 rounded bg-amber-600 px-3 text-[11px] font-bold text-white hover:bg-amber-700">Editar</button>
-                              <button type="button" disabled={partySaving} onClick={() => void deactivateParty('customer', client)} className="h-8 rounded bg-red-700 px-3 text-[11px] font-bold text-white hover:bg-red-800 disabled:opacity-50">Apagar</button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))
-                  : pagedSuppliers.map((sup) => (
-                      <tr key={sup.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e] transition-colors">
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-bold text-[#191c1d] dark:text-white">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 rounded-full bg-[#001e40] text-white flex items-center justify-center font-bold text-[11px]">
-                              {sup.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
-                            </div>
-                            <div>
-                              <div className="text-[10px] font-mono text-slate-500">[{sup.code || sup.number || 'FOR'}]</div>
-                              <span>{sup.name}</span>
-                            </div>
+                      )}
+                    </tr>
+                  ))
+                ) : (
+                  serverSuppliers.map((sup) => (
+                    <tr key={sup.id} className="hover:bg-[#f3f4f5] dark:hover:bg-[#282c2e] transition-colors">
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-bold text-[#191c1d] dark:text-white">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 rounded-full bg-[#001e40] text-white flex items-center justify-center font-bold text-[11px]">
+                            {sup.name.split(' ').map((w) => w[0]).join('').slice(0, 2)}
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-mono text-slate-500">[{sup.code || sup.number || 'FOR'}]</div>
+                            <span>{sup.name}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono text-[#003366] dark:text-[#a7c8ff]">
+                        {sup.nuit || 'N/A'}
+                      </td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#737780]">{sup.address || '—'}</td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono">{sup.phone || '—'}</td>
+                      <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#003366] dark:text-[#a7c8ff]">{sup.email || '—'}</td>
+                      <td className="p-3 text-right font-mono font-bold text-sm">
+                        <span className={(sup.pendingBalance ?? sup.totalPurchases ?? 0) > 0 ? 'text-[#ba1a1a]' : 'text-[#006e25]'}>
+                          {formatMZN(sup.pendingBalance ?? sup.totalPurchases ?? 0)}
+                        </span>
+                      </td>
+                      {isAdmin && (
+                        <td className="p-3">
+                          <div className="flex justify-center gap-1.5">
+                            <button type="button" onClick={() => openPartyEditor('supplier', sup)} className="h-8 rounded bg-amber-600 px-3 text-[11px] font-bold text-white hover:bg-amber-700">Editar</button>
+                            <button type="button" disabled={partySaving} onClick={() => void deactivateParty('supplier', sup)} className="h-8 rounded bg-red-700 px-3 text-[11px] font-bold text-white hover:bg-red-800 disabled:opacity-50">Apagar</button>
                           </div>
                         </td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono text-[#003366] dark:text-[#a7c8ff]">
-                          {sup.nuit || 'N/A'}
-                        </td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#737780]">{sup.address || '—'}</td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] font-mono">{sup.phone || '—'}</td>
-                        <td className="p-3 border-r border-[#c3c6d1] dark:border-[#43474f] text-[#003366] dark:text-[#a7c8ff]">{sup.email || '—'}</td>
-                        <td className="p-3 text-right font-mono font-bold text-sm">
-                          <span className={(sup.pendingBalance ?? sup.totalPurchases ?? 0) > 0 ? 'text-[#ba1a1a]' : 'text-[#006e25]'}>
-                            {formatMZN(sup.pendingBalance ?? sup.totalPurchases ?? 0)}
-                          </span>
-                        </td>
-                        {isAdmin && (
-                          <td className="p-3">
-                            <div className="flex justify-center gap-1.5">
-                              <button type="button" onClick={() => openPartyEditor('supplier', sup)} className="h-8 rounded bg-amber-600 px-3 text-[11px] font-bold text-white hover:bg-amber-700">Editar</button>
-                              <button type="button" disabled={partySaving} onClick={() => void deactivateParty('supplier', sup)} className="h-8 rounded bg-red-700 px-3 text-[11px] font-bold text-white hover:bg-red-800 disabled:opacity-50">Apagar</button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
+                      )}
+                    </tr>
+                  ))
+                )}
+                {!loadingParties && (mainTab === 'CLIENTES' ? serverClients.length === 0 : serverSuppliers.length === 0) && (
+                  <tr>
+                    <td colSpan={isAdmin ? 7 : 6} className="p-8 text-center text-slate-400">
+                      Nenhuma entidade encontrada.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
           <div className="border-t border-[#c3c6d1] bg-slate-50/70 px-3 dark:border-[#43474f] dark:bg-[#1b2023]">
             <Pagination
-              currentPage={safePage}
-              totalItems={currentListLength}
+              currentPage={page}
+              totalItems={mainTab === 'CLIENTES' ? serverClientsTotal : serverSuppliersTotal}
               pageSize={pageSize}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
