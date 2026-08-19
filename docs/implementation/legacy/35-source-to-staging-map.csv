@@ -1,0 +1,7 @@
+Source Table,Source Field,Staging Table,Staging Field,Transformation Rule
+ARTIGOS.DBF,CODIGO,migration.products_raw,legacy_code,Exact Copy
+ARTIGOS.DBF,DESCR,migration.products_raw,legacy_description,CP1252 to UTF-8
+CLIENTES.DBF,CODIGO,migration.customers_raw,legacy_number,Exact Copy
+CLIENTES.DBF,NOME,migration.customers_raw,legacy_name,CP1252 to UTF-8
+FATURAS.DBF,NUMERO,migration.documents_raw,legacy_document_number,Integer to String
+RECIBOS.DBF,NUMERO,migration.payments_raw,legacy_payment_number,Integer to String

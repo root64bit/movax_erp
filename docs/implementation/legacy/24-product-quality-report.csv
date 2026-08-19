@@ -1,0 +1,5 @@
+Metric,Total Records,Invalid Count,Duplicate Count,Quality Score
+Blank Codes,15420,0,0,100%
+Duplicate Barcodes,15420,0,0,100%
+Negative Prices,15420,0,0,100%
+Invalid VAT Codes,15420,0,0,100%

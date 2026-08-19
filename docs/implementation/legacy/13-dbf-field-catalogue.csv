@@ -1,0 +1,8 @@
+Table,Field Name,Field Type,Length,Decimals,Null Support,Sample Format
+ARTIGOS.DBF,CODIGO,Character,20,0,No,PN-2055516
+ARTIGOS.DBF,DESCR,Character,60,0,No,Pneu 205/55R16 91V
+ARTIGOS.DBF,PRECO,Numeric,12,2,No,5800.00
+CLIENTES.DBF,CODIGO,Character,15,0,No,CLI-00100
+CLIENTES.DBF,NOME,Character,80,0,No,Empresa Transportes MZN
+FATURAS.DBF,NUMERO,Numeric,10,0,No,10052
+FATURAS.DBF,VALOR,Numeric,14,2,No,15000.00

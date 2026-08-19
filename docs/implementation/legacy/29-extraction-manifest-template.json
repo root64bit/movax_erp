@@ -1,0 +1,8 @@
+{
+  "extraction_run_id": "EXT-RUN-WP10B-001",
+  "source_system": "XT-POS Windows XP",
+  "database_engine": "Visual FoxPro 3.0",
+  "tables_extracted": 8,
+  "total_records_extracted": 329030,
+  "status": "PASS"
+}

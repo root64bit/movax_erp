@@ -1,0 +1,33 @@
+{
+  "name": "movax-erp-pos",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/clean_sites_build.js && tsc && vite build && node scripts/prepare_sites_build.js",
+    "audit:static-data": "node scripts/audit-static-operational-data.js",
+    "audit:security": "node scripts/audit-repository-security.js",
+    "check": "npm run audit:security && npm run audit:static-data && node scripts/validate_migration_016_rollback.js && npm run build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@sentry/react": "^10.70.0",
+    "@supabase/supabase-js": "^2.48.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "dotenv": "^17.4.2",
+    "pg": "^8.22.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.5"
+  }
+}

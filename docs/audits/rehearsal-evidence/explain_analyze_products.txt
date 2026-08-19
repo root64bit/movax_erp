@@ -1,0 +1,6 @@
+Limit  (cost=0.00..1.12 rows=5 width=691) (actual time=1.168..1.172 rows=5 loops=1)
+  ->  Seq Scan on products  (cost=0.00..1.12 rows=5 width=691) (actual time=1.166..1.169 rows=5 loops=1)
+        Filter: is_active
+        Rows Removed by Filter: 7
+Planning Time: 11.565 ms
+Execution Time: 1.247 ms

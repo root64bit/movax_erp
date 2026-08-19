@@ -1,0 +1,3 @@
+BEGIN;
+DROP FUNCTION IF EXISTS public.get_operational_report(TEXT, DATE, DATE, INTEGER, INTEGER);
+COMMIT;

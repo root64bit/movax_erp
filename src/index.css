@@ -1,0 +1,508 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   GLOBAL DARK MODE HIGH CONTRAST STYLES
+   ============================================================ */
+html.dark,
+body.dark {
+  background-color: #191c1d !important;
+  color: #e1e3e4 !important;
+}
+
+html.dark body {
+  background-color: #191c1d !important;
+  color: #e1e3e4 !important;
+}
+
+.dark aside,
+.dark header,
+.dark nav,
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-slate-100 {
+  background-color: #1f2325 !important;
+  color: #e1e3e4 !important;
+}
+
+.dark .bg-slate-200,
+.dark .bg-slate-300 {
+  background-color: #282c2e !important;
+}
+
+.dark th,
+.dark td,
+.dark label,
+.dark p,
+.dark span:not([class*="bg-"]):not([class*="text-red"]):not([class*="text-green"]):not([class*="text-emerald"]):not([class*="text-amber"]) {
+  color: #e1e3e4;
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark .font-bold,
+.dark .font-semibold,
+.dark .font-black,
+.dark .font-extrabold {
+  color: #ffffff !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-black {
+  color: #d1d5db !important;
+}
+
+.dark table {
+  background-color: #1f2325 !important;
+}
+
+.dark tbody tr:hover {
+  background-color: #282c2e !important;
+}
+
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .divide-slate-200,
+.dark .divide-slate-300 {
+  border-color: #43474f !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #282c2e !important;
+  color: #ffffff !important;
+  border-color: #43474f !important;
+}
+
+.dark input::placeholder {
+  color: #9ca3af !important;
+}
+
+/* ============================================================
+   STITCH DESIGN SYSTEM — Movax ERP / POS
+   Project: 786368460448211335
+   Style: Modernized Utilitarianism
+   ============================================================ */
+
+@theme {
+  /* ── Primary (Corporate Blue) ── */
+  --color-primary: #001e40;
+  --color-primary-container: #003366;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #799dd6;
+  --color-primary-fixed: #d5e3ff;
+  --color-primary-fixed-dim: #a7c8ff;
+  --color-on-primary-fixed: #001b3c;
+  --color-on-primary-fixed-variant: #1f477b;
+  --color-inverse-primary: #a7c8ff;
+
+  /* ── Secondary (Success Green — Guardar / Confirmar) ── */
+  --color-secondary: #006e25;
+  --color-secondary-container: #80f98b;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #007327;
+  --color-secondary-fixed: #83fc8e;
+  --color-secondary-fixed-dim: #66df75;
+  --color-on-secondary-fixed: #002106;
+  --color-on-secondary-fixed-variant: #00531a;
+
+  /* ── Tertiary (Deep Red Accent) ── */
+  --color-tertiary: #450009;
+  --color-tertiary-container: #6d0014;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #ff6b70;
+  --color-tertiary-fixed: #ffdad9;
+  --color-tertiary-fixed-dim: #ffb3b2;
+  --color-on-tertiary-fixed: #410008;
+  --color-on-tertiary-fixed-variant: #92001f;
+
+  /* ── Error (Cancelar / Stock Crítico) ── */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  /* ── Surface / Background ── */
+  --color-background: #f8f9fa;
+  --color-on-background: #191c1d;
+  --color-surface: #f8f9fa;
+  --color-surface-bright: #f8f9fa;
+  --color-surface-dim: #d9dadb;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f4f5;
+  --color-surface-container: #edeeef;
+  --color-surface-container-high: #e7e8e9;
+  --color-surface-container-highest: #e1e3e4;
+  --color-surface-variant: #e1e3e4;
+  --color-surface-tint: #3a5f94;
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #43474f;
+  --color-inverse-surface: #2e3132;
+  --color-inverse-on-surface: #f0f1f2;
+
+  /* ── Outline ── */
+  --color-outline: #737780;
+  --color-outline-variant: #c3c6d1;
+
+  /* ── Spacing (4px baseline grid) ── */
+  --spacing-unit: 4px;
+  --spacing-gutter: 16px;
+  --spacing-margin: 24px;
+  --spacing-container-max: 1440px;
+
+  /* ── Border Radius (Soft 4px) ── */
+  --radius-sm: 0.125rem;
+  --radius-DEFAULT: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  /* ── Typography (Inter) ── */
+  --font-inter: 'Inter', sans-serif;
+
+  --text-headline-lg: 24px;
+  --text-headline-lg--line-height: 32px;
+  --text-headline-lg--font-weight: 700;
+  --text-headline-lg--letter-spacing: -0.02em;
+
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: 28px;
+  --text-headline-md--font-weight: 600;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-md--font-weight: 400;
+
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--font-weight: 600;
+  --text-label-md--letter-spacing: 0.05em;
+
+  --text-data-mono: 14px;
+  --text-data-mono--line-height: 20px;
+  --text-data-mono--font-weight: 500;
+  --text-data-mono--letter-spacing: -0.01em;
+}
+
+/* ── Base Styles ── */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Material Symbols Icon Configuration ── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  display: inline-block;
+  user-select: none;
+}
+
+.material-symbols-outlined.fill-current {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ── Tabular Nums for MZN Currency Alignment ── */
+.font-data-mono {
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* ── Custom Scrollbar (Modernized Utilitarian) ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline);
+}
+
+/* ── Focus Rings (2px Primary Blue — Keyboard Navigation) ── */
+.focus-ring:focus {
+  outline: 2px solid var(--color-primary-container);
+  outline-offset: 1px;
+}
+
+/* ── Stock Warning Pulse Animation ── */
+@keyframes warning-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; transform: scale(0.998); }
+}
+
+.animate-stock-warning {
+  animation: warning-pulse 2.5s infinite ease-in-out;
+}
+
+/* ── Dark Mode Overrides ── */
+.dark body,
+.dark {
+  --color-background: #191c1d;
+  --color-surface: #1f2325;
+  --color-surface-container-lowest: #141618;
+  --color-surface-container-low: #1a1e20;
+  --color-surface-container: #1f2325;
+  --color-surface-container-high: #282c2e;
+  --color-surface-container-highest: #333739;
+  --color-on-surface: #e1e3e4;
+  --color-on-surface-variant: #c3c6d1;
+  --color-outline: #8d9199;
+  --color-outline-variant: #43474f;
+}
+
+/* ── Number Input Spinner Removal ── */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+button,
+input,
+select,
+textarea {
+  min-height: 44px;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 5mm 8mm;
+  }
+
+  /* FORCE pure white background and black text for ALL elements in print, ignoring dark mode */
+  html,
+  body,
+  html.dark,
+  body.dark,
+  html.dark body,
+  .dark,
+  .dark *,
+  div,
+  section,
+  table,
+  tbody,
+  thead,
+  tr,
+  th,
+  td,
+  p,
+  span,
+  b,
+  strong {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  body.printing-modal #root {
+    display: none !important;
+  }
+
+  /* Hide web app UI controls during print */
+  aside,
+  header,
+  footer,
+  nav,
+  button,
+  input,
+  select,
+  textarea,
+  .no-print,
+  .print\:hidden,
+  [role="alert"],
+  [data-screen-only] {
+    display: none !important;
+  }
+
+  /* Reset modal backdrop wrappers */
+  .fixed.inset-0,
+  .fixed {
+    position: static !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
+    break-after: auto;
+  }
+}
+
+/* ============================================================
+   MOVAX SIMPLE-ERP WORKSPACE
+   Dense enough for professional back-office work, readable enough
+   for POS operators and first-time ERP users.
+   ============================================================ */
+.movax-kpi-card {
+  display: flex;
+  min-height: 116px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  border: 1px solid #dfe3e8;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 16px;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.movax-kpi-card:hover {
+  border-color: #9aaec4;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+  transform: translateY(-1px);
+}
+.movax-kpi-label {
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a8491;
+}
+.movax-kpi-value {
+  margin-top: 6px;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #142033;
+}
+.movax-kpi-note {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 650;
+  color: #89919d;
+}
+
+.movax-table,
+.erp-table {
+  font-size: 14px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.movax-table th,
+.erp-table th {
+  min-height: 44px;
+  padding: 11px 12px;
+  font-size: 11.5px;
+  line-height: 15px;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  color: #626d7a;
+  white-space: nowrap;
+}
+.movax-table td,
+.erp-table td {
+  min-height: 46px;
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+.movax-table thead {
+  background: #f3f5f7;
+}
+.movax-table tbody tr {
+  border-top: 1px solid #edf0f2;
+}
+.movax-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* ERP screens must remain readable on counter monitors and older laptops. */
+.movax-form input:not([type='checkbox']):not([type='radio']),
+.movax-form select,
+.movax-form textarea {
+  min-height: 40px;
+  font-size: 14px;
+}
+
+.movax-table thead th,
+.erp-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.dark .movax-kpi-card {
+  border-color: #34383b;
+  background: #1b2023;
+}
+.dark .movax-kpi-card:hover {
+  border-color: #5377a0;
+  box-shadow: none;
+}
+.dark .movax-kpi-label,
+.dark .movax-kpi-note {
+  color: #9aa2aa !important;
+}
+.dark .movax-kpi-value {
+  color: #ffffff;
+}
+.dark .movax-table thead {
+  background: #252a2d;
+}
+.dark .movax-table tbody tr {
+  border-color: #34383b;
+}
+.dark .movax-table tbody tr:hover {
+  background: #252a2d !important;
+}
+
+@media (max-width: 767px) {
+  .movax-kpi-value { font-size: 18px; line-height: 24px; }
+  .movax-kpi-card { min-height: 104px; padding: 13px; }
+}
