@@ -29,7 +29,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
     },
     {
       q: 'Como funciona o pagamento via M-Pesa?',
-      a: 'Ao selecionar M-Pesa, receberá uma solicitação no seu telemóvel para introduzir o seu PIN de forma 100% segura. A ativação é instantânea.',
+      a: 'Ao selecionar M-Pesa, receberá um push USSD no seu telemóvel para introduzir o seu PIN de forma 100% segura. A ativação é instantânea.',
     },
     {
       q: 'O que acontece se atingir o limite de utilizadores ou armazéns?',

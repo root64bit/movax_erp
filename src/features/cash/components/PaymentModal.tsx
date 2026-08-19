@@ -170,7 +170,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-red-700 dark:text-red-300 uppercase flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                  M-Pesa Express
+                  M-Pesa Express (Push USSD)
                 </span>
                 <span className="text-[10px] text-slate-500">Vodacom Moçambique</span>
               </div>
@@ -201,7 +201,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-sm">phonelink_ring</span>
-                      <span>Solicitar Pagamento</span>
+                      <span>Disparar USSD</span>
                     </>
                   )}
                 </button>
