@@ -1473,7 +1473,7 @@ export const Quotation: React.FC<QuotationProps> = ({
                               step="0.01"
                               min="0"
                               max="100"
-                              value={item.ivaPercent || 16}
+                              value={item.ivaPercent ?? 16}
                               onChange={(e) => {
                                 const iva = Number(e.target.value);
                                 setEditItems(prev => {

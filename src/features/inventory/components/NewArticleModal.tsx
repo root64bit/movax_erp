@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Article, ReferenceOption } from '@/shared/types/domain.types';
 
 export interface NewArticleModalProps {
@@ -117,7 +117,7 @@ export const NewArticleModal: React.FC<NewArticleModalProps> = ({
         profitMargin: Number(profitMargin) || 0,
         sellPrice: Number(sellPrice) || 0,
         sellPriceWithIva: Number(sellPriceWithIva) || 0,
-        taxRate: Number(taxRate) || 16,
+        taxRate: typeof taxRate === 'number' && !isNaN(taxRate) ? taxRate : 16,
         category: categoryName.trim() || 'Geral',
         brand: brandName.trim() || undefined,
       };

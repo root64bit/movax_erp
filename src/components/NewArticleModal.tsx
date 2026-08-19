@@ -59,7 +59,7 @@ export const NewArticleModal: React.FC<NewArticleModalProps> = ({
       setCostPriceStr(articleToEdit.costPrice > 0 ? String(articleToEdit.costPrice) : '');
       // Show sell price WITH IVA when editing
       const existingSellWithIva = articleToEdit.sellPrice > 0
-        ? Math.round(articleToEdit.sellPrice * (1 + (articleToEdit.taxRate || 16) / 100) * 100) / 100
+        ? Math.round(articleToEdit.sellPrice * (1 + (articleToEdit.taxRate ?? 16) / 100) * 100) / 100
         : 0;
       setSellPriceStr(existingSellWithIva > 0 ? String(existingSellWithIva) : '');
       setMinStockStr(articleToEdit.minStock > 0 ? String(articleToEdit.minStock) : '');

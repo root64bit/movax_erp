@@ -281,7 +281,7 @@ export async function postStockMovement(movement: StockMovement): Promise<void> 
 
   // Auto-update product sell price if a price with IVA was provided on stock entry
   if (movement.sellPriceWithIva && movement.sellPriceWithIva > 0 && movement.type === 'entrada') {
-    const taxRate = articleResult.data.tax_rate || 16;
+    const taxRate = articleResult.data.tax_rate ?? 16;
     const newSellPrice = Math.round((movement.sellPriceWithIva / (1 + taxRate / 100)) * 100) / 100;
 
     await client
@@ -420,7 +420,7 @@ export async function createCustomerSale(
       quantity: item.quantity,
       unit_price_incl: item.unitPrice || 0,
       discount_amount: item.discountAmount || 0,
-      tax_rate: item.ivaPercent || 16,
+      tax_rate: item.ivaPercent ?? 16,
       line_type: item.lineType || (isUuid(item.articleId) ? 'STOCK' : 'MANUAL'),
       stock_effect_enabled: item.stockEffectEnabled ?? isUuid(item.articleId),
     })),
@@ -476,7 +476,7 @@ export async function createQuotation(
       quantity: item.quantity,
       unit_price_incl: item.unitPrice || 0,
       discount_amount: item.discountAmount || 0,
-      tax_rate: item.ivaPercent || 16,
+      tax_rate: item.ivaPercent ?? 16,
       line_type: item.lineType || (isUuid(item.articleId) ? 'STOCK' : 'MANUAL'),
       stock_effect_enabled: false,
     })),
@@ -1234,8 +1234,8 @@ export async function loadAppData(scope: AppDataScope = 'all'): Promise<AppData>
           unitPrice: priceWithIva,
           discountPercent: legacyDiscountPercent,
           discountAmount: Math.round(legacyDiscountAmount * 100) / 100,
-          ivaPercent: numberValue(line.tax_rate_snapshot) || 16,
-          total: tot > 0 ? tot : calculateDocumentLine({ quantity: qty, unitPrice: priceWithIva, discountAmount: legacyDiscountAmount, discountPercent: 0, ivaPercent: numberValue(line.tax_rate_snapshot) || 16 }).totalWithTax,
+          ivaPercent: line.tax_rate_snapshot !== null && line.tax_rate_snapshot !== undefined && !isNaN(Number(line.tax_rate_snapshot)) ? Number(line.tax_rate_snapshot) : 16,
+          total: tot > 0 ? tot : calculateDocumentLine({ quantity: qty, unitPrice: priceWithIva, discountAmount: legacyDiscountAmount, discountPercent: 0, ivaPercent: line.tax_rate_snapshot !== null && line.tax_rate_snapshot !== undefined && !isNaN(Number(line.tax_rate_snapshot)) ? Number(line.tax_rate_snapshot) : 16 }).totalWithTax,
           lineType: line.product_id ? 'STOCK' : (String(line.product_code_snapshot || '').toUpperCase().startsWith('SERV') ? 'SERVICE' : 'MANUAL'),
           stockEffectEnabled: Boolean(line.stock_effect_enabled),
         };

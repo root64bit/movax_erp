@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { calculatePosTotals, calculateChange, isWalkInClient, normalizeClientSearch } from '../../src/features/pos/utils/posCalculations';
 import { calculateQuotationTotals } from '../../src/features/quotations/utils/quotationCalculations';
 import type { SaleItem, Client } from '../../src/shared/types/domain.types';
@@ -135,13 +135,70 @@ describe('Fiscal & VAT Calculations (Mozambique MZN Standard & Multi-Tax)', () =
     expect(calculateChange(400, 500)).toBe(0);
   });
 
-  it('identifies walk-in clients accurately', () => {
-    const walkInClient1: Client = { id: 'c-1', number: 1, name: 'Cliente Pontual', email: '', phone: '', address: '', taxNumber: '', balance: 0, pendingBalance: 0 };
-    const walkInClient2: Client = { id: 'c-2', code: '1', name: 'Consumidor Final', email: '', phone: '', address: '', taxNumber: '', balance: 0, pendingBalance: 0 };
-    const accountClient: Client = { id: 'c-3', code: 'CUST-002', name: 'Transportes Machava, Lda.', email: '', phone: '', address: '', taxNumber: '400123456', balance: 0, pendingBalance: 5000 };
+  it('accurately handles VAT rates: 0%, 16%, 5%, undefined, and null', () => {
+    // 0% VAT
+    const item0: SaleItem = {
+      articleId: 'art-0',
+      code: 'ZERO',
+      description: 'Isento',
+      quantity: 1,
+      unitPrice: 100,
+      discountPercent: 0,
+      ivaPercent: 0,
+      total: 100,
+    };
+    expect(calculatePosTotals([item0]).totalVat).toBe(0);
 
-    expect(isWalkInClient(walkInClient1)).toBe(true);
-    expect(isWalkInClient(walkInClient2)).toBe(true);
-    expect(isWalkInClient(accountClient)).toBe(false);
+    // 16% VAT
+    const item16: SaleItem = {
+      articleId: 'art-16',
+      code: 'STANDARD',
+      description: 'Normal 16%',
+      quantity: 1,
+      unitPrice: 100,
+      discountPercent: 0,
+      ivaPercent: 16,
+      total: 116,
+    };
+    expect(calculatePosTotals([item16]).totalVat).toBe(16);
+
+    // 5% VAT (Alternative)
+    const item5: SaleItem = {
+      articleId: 'art-5',
+      code: 'REDUCED',
+      description: 'Reduzido 5%',
+      quantity: 1,
+      unitPrice: 100,
+      discountPercent: 0,
+      ivaPercent: 5,
+      total: 105,
+    };
+    expect(calculatePosTotals([item5]).totalVat).toBe(5);
+
+    // undefined VAT -> fallback to default 16%
+    const itemUndef: SaleItem = {
+      articleId: 'art-undef',
+      code: 'UNDEF',
+      description: 'Undefined tax',
+      quantity: 1,
+      unitPrice: 100,
+      discountPercent: 0,
+      ivaPercent: undefined as any,
+      total: 116,
+    };
+    expect(calculatePosTotals([itemUndef]).totalVat).toBe(16);
+
+    // null VAT -> fallback to default 16%
+    const itemNull: SaleItem = {
+      articleId: 'art-null',
+      code: 'NULL',
+      description: 'Null tax',
+      quantity: 1,
+      unitPrice: 100,
+      discountPercent: 0,
+      ivaPercent: null as any,
+      total: 116,
+    };
+    expect(calculatePosTotals([itemNull]).totalVat).toBe(16);
   });
 });

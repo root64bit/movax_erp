@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Article, SaleInvoice, SaleItem } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
 import { ArticleSearchSelect } from '@/features/inventory/components/ArticleSearchSelect';
@@ -132,8 +132,9 @@ export const PosEditSaleModal: React.FC<PosEditSaleModalProps> = ({
         keepAsWalkIn: editKeepAsWalkIn,
       });
       onClose();
-    } catch (err: any) {
-      setEditError(err?.message || 'Erro ao gravar as alterações do documento.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao gravar as alterações do documento.';
+      setEditError(message);
     } finally {
       setIsSavingEdit(false);
     }
@@ -382,7 +383,7 @@ export const PosEditSaleModal: React.FC<PosEditSaleModalProps> = ({
                             step="0.01"
                             min="0"
                             max="100"
-                            value={item.ivaPercent || 16}
+                            value={item.ivaPercent ?? 16}
                             onChange={(e) => {
                               const iva = Number(e.target.value);
                               setEditItems((prev) => {

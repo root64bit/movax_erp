@@ -187,7 +187,7 @@ export function Documents({
             const tot = Number(line.total_amount) || 0;
             const discountAmount = Number(line.discount_amount) || 0;
             const disc = Number(line.discount_percentage) || 0;
-            const taxRate = Number(line.tax_rate_snapshot) || 16;
+            const taxRate = line.tax_rate_snapshot !== null && line.tax_rate_snapshot !== undefined && !isNaN(Number(line.tax_rate_snapshot)) ? Number(line.tax_rate_snapshot) : 16;
             const priceWithIva = (tot > 0 && qty > 0)
               ? Math.round(((tot + discountAmount) / qty) * 100) / 100
               : Math.round(Number(line.unit_price) * (1 + taxRate / 100) * 100) / 100;
@@ -899,7 +899,7 @@ export function Documents({
                               step="0.01"
                               min="0"
                               max="100"
-                              value={item.ivaPercent || 16}
+                              value={item.ivaPercent ?? 16}
                               onChange={(e) => {
                                 const iva = Number(e.target.value);
                                 setEditItems(prev => {
