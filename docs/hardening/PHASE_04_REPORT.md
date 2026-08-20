@@ -1,6 +1,6 @@
 ﻿# MOVAX ERP — RELATÓRIO OFICIAL DE FECHO DA PHASE 4
 ## STOCK MOVEMENTS & TRANSFERS STRUCTURAL DECOMPOSITION
-### PHASE 4 CORRECTION & PRODUCTION EVIDENCE GATE
+### FINAL STATE-MACHINE & WRITE-SAFETY GATE
 
 **Data:** 20 de Agosto de 2026  
 **Status do Gate:** `PHASE_04_STATUS = PASS`  
@@ -9,126 +9,141 @@
 **Database Schema:** `DATABASE_SCHEMA_CHANGED = NO` | `MIGRATIONS_ADDED = 0`  
 **New Features:** `NEW_FEATURES = NONE`  
 **Visual Review:** `CURRENT_UI_MANUAL_REVIEW = NOT_VERIFIED` (Execução em pipeline sem sessão de browser manual)  
-**Visual Parity Pre-Phase:** `VISUAL_PARITY_WITH_PRE_PHASE_SCREENSHOT = NOT_VERIFIED` (Classificação honesta sem baseline pré-fase arquivado)  
+**Visual Parity Pre-Phase:** `VISUAL_PARITY_WITH_PRE_PHASE_SCREENSHOT = NOT_VERIFIED` (Classificação honesta sem baseline arquivado)  
 **E2E Automation:** `E2E_AUTOMATION = NOT_AVAILABLE` (Execução local sem credenciais de staging)  
 
 ---
 
-## 1. REGISTO DE CORRECÇÃO E RESTAURAÇÃO DO WORKFLOW OPERACIONAL
+## 1. STATE MACHINE CANÓNICA DE TRANSFERÊNCIAS (ALINHAMENTO FRONTEND / BACKEND)
 
-### 1.1 Restauração da Secção de Guias Directas (`DirectGuideHistorySection.tsx`)
-- **Problema Identificado:** Durante a decomposição inicial da Phase 4, o hook `useDirectStockMovement.ts` continha os métodos `openGuideForEdit`, `editingGuideId` e `stockGuideDocuments`, mas a tabela de histórico de guias directas onde o operador clicava em "Editar", "Anular" ou "Imprimir" não estava a ser renderizada em `StockMovementsPage.tsx`.
-- **Correcção Aplicada:** Extraído o componente `DirectGuideHistorySection.tsx` preservando rigorosamente o layout, tabelas, classes e acções da Phase 3.
-- **Wiring de Edição (`update_stock_guide_v2`):** Ao clicar em "Editar", `openGuideForEdit(document)` preenche síncronamente o formulário, atribui `editingGuideId = document.id`, e `submitGuide()` invoca `onSaveGuide({ id: editingGuideId, ... })`, acedendo à RPC server-side `update_stock_guide_v2`.
-- **Wiring de Anulação (`cancel_stock_guide_v2`):** Ao clicar em "Anular" (visível apenas com `canCancelGuide === true` e desactivado em guias já anuladas), o estado `cancellingGuide` é aberto no modal `CancelGuideModal.tsx`. Ao introduzir o motivo e confirmar, `confirmGuideCancellation()` invoca `onCancelGuide(cancellingGuide.id, cancelReason)`.
-- **Protecção de Duplo Clique na Anulação:** `isCancelling` bloqueia o botão de submissão do modal durante o processamento. Em caso de erro, a mensagem é apresentada, `isCancelling` é libertado e o modal permanece aberto para retry.
+A migration 052 (`20260817202000_052_movax_stock_transfer_workflow.sql`) define como autoridade no PostgreSQL os seguintes estados canónicos: `PENDING`, `IN_TRANSIT`, `RECEIVED` e `CANCELLED`.
+O módulo de frontend utiliza agora a função de normalização explícita `normalizeTransferStatus()` para traduzir eventuais aliases legados e garantir que nenhum botão operacional é exibido para estados que o PostgreSQL rejeita:
 
----
-
-## 2. ANÁLISE COMPARATIVA DE LINHAS DE CÓDIGO (BEFORE VS AFTER)
-
-| Ficheiro / Módulo | Linhas Before | Linhas After | Responsabilidade |
-| :--- | :---: | :---: | :--- |
-| `pages/StockMovementsPage.tsx` | **1.626** | **293** | Orquestração limpa de estado de página, atalhos e composição |
-| `components/DirectMovementSection.tsx` | — | **478** | Formulário de entrada/saída direta, pesquisa de artigos e grelha |
-| `hooks/useDirectStockMovement.ts` | — | **344** | Gestão do rascunho de guia direta, submissão atómica e validações |
-| `components/MovementHistorySection.tsx` | — | **238** | Tabela de histórico paginada no servidor, filtros e exportação CSV |
-| `components/StockTransferSection.tsx` | — | **221** | Criação e preparação de guias de transferência entre armazéns |
-| `hooks/useStockTransfersManagement.ts` | — | **215** | Ciclo de vida de transferências (criar, enviar, receber, anular) |
-| `services/stockTransfers.service.ts` | 167 | **167** | Serviço de integração e chamadas RPC com PostgreSQL/Supabase |
-| `components/DirectGuideHistorySection.tsx` | — | **137** | Lista operacional de guias directas (Editar, Anular, Imprimir) |
-| `components/TransferHistorySection.tsx` | — | **128** | Tabela de guias de transferência com acções operacionais |
-| `hooks/useStockMovementHistory.ts` | — | **117** | Paginação server-side, debounce e filtros do histórico |
-| `components/StockModeSelector.tsx` | — | **81** | Navegação em abas de modo (Entrada, Saída, Transferência) |
-| `components/CancelGuideModal.tsx` | — | **68** | Modal de confirmação com motivo de anulação de guia de stock |
-| `utils/stockTransferState.ts` | — | **53** | Funções puras de state machine, projeção de stock e exportação CSV |
-| `components/TransferStatusBadge.tsx` | — | **45** | Badge reutilizável de estados com fallback para status desconhecido |
-| `types/stock-transfer.types.ts` | — | **24** | Definições de tipos e interfaces estritas do módulo |
+| UI Status | Normalized | Database Canonical? | Legacy Alias? | Dispatch (`canDispatch`) | Receive (`canReceive`) | Cancel (`canCancel`) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| `PENDING` | `PENDING` | **SIM** | Não | **SIM** | Não | **SIM** |
+| `DRAFT` | `PENDING` | Não | **SIM** | **SIM** | Não | **SIM** |
+| `IN_TRANSIT` | `IN_TRANSIT` | **SIM** | Não | Não | **SIM** | **SIM** |
+| `DISPATCHED` | `IN_TRANSIT` | Não | **SIM** | Não | **SIM** | **SIM** |
+| `RECEIVED` | `RECEIVED` | **SIM** | Não | Não | Não | Não |
+| `CANCELLED` | `CANCELLED` | **SIM** | Não | Não | Não | Não |
+| Desconhecido (`*`) | Raw Status | Não | Não | Não | Não | Não |
 
 ---
 
-## 3. MATRIZ DE REGRESSÃO E PARIDADE DE CAPACIDADES
+## 2. MATRIZ DE WRITE SAFETY E PROTECÇÃO CONTRA DOUBLE-SUBMIT
 
-| Capacidade Operacional | Phase 3 Baseline | Phase 4 Inicial | Phase 4 Corrigida | Resultado |
-| :--- | :--- | :--- | :--- | :---: |
-| **Criar Guia Directa** | Presente | Presente | Presente | `PASS` |
-| **Listar Guias Directas** | Presente | Ausente | **Restaurado** (`DirectGuideHistorySection`) | `PASS` |
-| **Editar Guia Directa** | Presente | Inacessível | **Restaurado** (`openGuideForEdit` -> `update_stock_guide_v2`) | `PASS` |
-| **Anular Guia Directa** | Presente | Inacessível | **Restaurado** (`CancelGuideModal` -> `cancel_stock_guide_v2`) | `PASS` |
-| **Imprimir Guia Directa** | Presente | Parcial | **Restaurado** (`onOpenDocument`) | `PASS` |
-| **Criar Transferência** | Presente | Presente | Presente (`create_stock_transfer_v1`) | `PASS` |
-| **Expedir Transferência**| Presente | Presente | Presente (`dispatch_stock_transfer_v1`) | `PASS` |
-| **Receber Transferência**| Presente | Presente | Presente (`receive_stock_transfer_v1`) | `PASS` |
-| **Anular Transferência** | Presente | Presente | Presente (`cancel_stock_transfer_v1`) | `PASS` |
-| **Histórico Paginado** | Presente | Presente | Presente (`get_stock_movements_page_v2`) | `PASS` |
-| **Extrato do Artigo** | Presente | Presente | Presente (`ArticleLedgerModal`) | `PASS` |
+Protecções de bloqueio síncrono no frontend (`useRef` mutex) e contratos no PostgreSQL:
+
+| Operação | Frontend Lock | Backend Lock / Guard | Backend Idempotency | Classificação / Observações |
+| :--- | :---: | :---: | :---: | :--- |
+| **Direct Guide Create** | `YES` (`savingRef`) | `STATE_GUARD` | `IDEMPOTENCY_KEY` | `p_idempotency_key` verificado em `documents` |
+| **Direct Guide Update** | `YES` (`savingRef`) | `FOR UPDATE` | `STATE_GUARD` | Reversão atómica de movimentos anteriores |
+| **Direct Guide Cancel** | `YES` (`isCancelling`) | `FOR UPDATE` | `STATE_GUARD` | Reversão atómica de stock e razão |
+| **Transfer Create** | `YES` (`transferWriteLockRef`) | `STATE_GUARD` | `NOT_VERIFIED` (`UNIQUE_IDENTIFIER`) | Frontend lock impede duplo envio; Dívida documentada |
+| **Transfer Dispatch** | `YES` (`transferWriteLockRef`) | `FOR UPDATE` | `STATE_GUARD` | State guard rejeita se `status <> PENDING` |
+| **Transfer Receive** | `YES` (`transferWriteLockRef`) | `FOR UPDATE` | `STATE_GUARD` | State guard rejeita se `status <> IN_TRANSIT` |
+| **Transfer Cancel** | `YES` (`transferWriteLockRef`) | `FOR UPDATE` | `STATE_GUARD` | State guard rejeita se `status = RECEIVED` |
 
 ---
 
-## 4. AUDITORIA DE SQL E CONTRATOS BACKEND DAS RPCs
+## 3. DECLARAÇÃO DE DÍVIDAS DE ESCALA E CONCORRÊNCIA
 
-| RPC | Migração / Linhas | Atómica / Transacção | `FOR UPDATE` Locking | State Validation Guard | Tenant Guard | Idempotência / Reversão | Classificação |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `create_stock_guide_v2` | `047_stock_guide_documents.sql:149-202` | SIM | NÃO (INSERT) | SIM (`has_permission`) | SIM (`get_user_company_id()`) | SIM (`p_idempotency_key` em `documents`) | `SQL_VERIFIED` |
-| `update_stock_guide_v2` | `047_stock_guide_documents.sql:204-273` | SIM | SIM (`documents FOR UPDATE`, `ledger FOR UPDATE`) | SIM (`NOT IN('CANCELLED','REVERSED')`) | SIM (`company_id = get_user_company_id()`) | SIM (Reversão automática de movimentos anteriores) | `SQL_VERIFIED` |
-| `cancel_stock_guide_v2` | `047_stock_guide_documents.sql:275-306` | SIM | SIM (`documents FOR UPDATE`) | SIM (`status <> 'CANCELLED'`, `'REVERSED'`) | SIM (`company_id = get_user_company_id()`) | SIM (Reversão total de stock e ledger) | `SQL_VERIFIED` |
-| `create_stock_transfer_v1` | `052_movax_stock_transfer_workflow.sql:18-105` | SIM | NÃO (INSERT) | SIM (`from != to`, `lines > 0`) | SIM (`get_user_company_id()`) | SIM (Número único de transferência) | `SQL_VERIFIED` |
-| `dispatch_stock_transfer_v1`| `052_movax_stock_transfer_workflow.sql:107-159` | SIM | SIM (`stock_transfers FOR UPDATE`) | SIM (`status = 'PENDING'`) | SIM (`get_user_company_id()`) | SIM (State guard impede duplo dispatch) | `SQL_VERIFIED` |
-| `receive_stock_transfer_v1` | `052_movax_stock_transfer_workflow.sql:161-206` | SIM | SIM (`stock_transfers FOR UPDATE`) | SIM (`status = 'IN_TRANSIT'`) | SIM (`get_user_company_id()`) | SIM (State guard impede duplo receive) | `SQL_VERIFIED` |
-| `cancel_stock_transfer_v1` | `052_movax_stock_transfer_workflow.sql:208-259` | SIM | SIM (`stock_transfers FOR UPDATE`) | SIM (`status <> 'RECEIVED'`) | SIM (`get_user_company_id()`) | SIM (Reversão de stock se `IN_TRANSIT`) | `SQL_VERIFIED` |
+Conforme as directrizes de honestidade técnica do plano de hardening:
 
----
+```ini
+DIRECT_GUIDE_HISTORY_SCALE_DEBT = YES (.slice(0, 50) herdado do baseline)
+TRANSFER_HISTORY_SCALE_DEBT = YES (fetchTransfers(100) herdado do baseline)
+TRANSFER_CREATE_BACKEND_IDEMPOTENCY_DEBT = YES (Número único gerado no DB não é idempotência para retry de rede)
 
-## 5. MATRIZ DE PERMISSÕES OPERACIONAIS (EVIDÊNCIA REAL)
+TRANSFER_DISPATCH_SQL_LOCK = VERIFIED
+TRANSFER_RECEIVE_SQL_LOCK = VERIFIED
+TRANSFER_CANCEL_SQL_LOCK = VERIFIED
 
-| Ação Operacional | Guard de Frontend | Autoridade de Segurança Backend |
-| :--- | :--- | :--- |
-| **Entrada Direta** | `canPostEntry` | Backend RPC `create_stock_guide_v2` (`stock.direct_entry`) |
-| **Saída Direta** | `canPostExit` | Backend RPC `create_stock_guide_v2` (`stock.direct_exit`) |
-| **Transferência entre Armazéns** | `canTransfer` | Backend RPC `create_stock_transfer_v1` (`stock.transfer`) |
-| **Anulação de Guia** | `canCancelGuide` | Backend RPC `cancel_stock_guide_v2` (`settings.manage`) |
-| **Visualização de Preço de Custo** | `canViewCost` | `FRONTEND_GUARD_ONLY` (Omitido condicionalmente da renderização do componente) |
-| **Stock Negativo** | `canAllowNegative` | Frontend alert + Backend trigger constraint em `inventory_balances` |
+DOUBLE_DISPATCH_CONCURRENT_RUNTIME = DEFERRED_TO_PHASE_09
+DOUBLE_RECEIVE_CONCURRENT_RUNTIME = DEFERRED_TO_PHASE_09
+```
 
 ---
 
-## 6. MATRIZ DE EVIDÊNCIA DE TESTES DE PRODUÇÃO
+## 4. MATRIZ DE EVIDÊNCIA DE EXECUÇÃO DE CÓDIGO DE PRODUÇÃO
 
 | Comportamento / Fluxo | Código de Produção Exercitado? | Tipo de Evidência | Ficheiro / Suite de Teste | Resultado |
-| :--- | :---: | :--- | :--- | :--- |
-| **State Machine: Dispatch** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **State Machine: Receive** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **State Machine: Cancel** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **Projeção de Stock (Entrada/Saída)** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **Cálculo de Crédito a Fornecedor**| **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **Exportação CSV UTF-8 BOM** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **Badge de Status Desconhecido** | **SIM** | `COMPONENT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **Validação Armazém Origem != Destino**| **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **Validação Linhas Obrigatórias** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
-| **Renderização do Workspace de Entrada**| **SIM** | `COMPONENT_TESTED` | `tests/unit/stockMovementsRender.test.ts` | `PASS` |
-| **Renderização da Lista de Guias Directas**| **SIM** | `COMPONENT_TESTED` | `tests/unit/stockMovementsRender.test.ts` | `PASS` |
-| **Guards de Permissão em Renderização**| **SIM** | `COMPONENT_TESTED` | `tests/unit/stockMovementsRender.test.ts` | `PASS` |
-| **Paginação Server-Side de Movimentos**| **SIM** | `UNIT_TESTED` | `tests/unit/pagination.test.ts` | `PASS` |
+| :--- | :---: | :--- | :--- | :---: |
+| **Guide Edit action** | **SIM** | `COMPONENT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Guide Update payload** | **SIM** | `HOOK_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Guide Cancel action** | **SIM** | `COMPONENT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Cancel permission guard** | **SIM** | `COMPONENT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Cancel modal validation** | **SIM** | `COMPONENT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Direct write lock (mutex)** | **SIM** | `HOOK_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Direct write retry on fail**| **SIM** | `HOOK_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Dispatch state alignment** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Receive state alignment** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Unknown state badge** | **SIM** | `COMPONENT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Render do Workspace Directo**| **SIM** | `COMPONENT_TESTED` | `tests/unit/stockMovementsRender.test.ts` | `PASS` |
 
 ---
 
-## 7. VALIDAÇÃO AUTOMATIZADA DE BUILD & SEGURANÇA
+## 5. MÉTRICAS E ESTRUTURA DO CÓDIGO
 
-- **Testes Automatizados (Vitest):** `15/15` suites, **71/71 testes aprovados (100% PASS)** em ~520ms.
-- **`npm run check`:**
-  - Auditoria de segurança de chaves: **PASS** (0 chaves/segredos).
-  - Auditoria de dados estáticos multiempresa: **PASS** (Branding neutro).
-  - Contrato de rollback da migração 016: **PASS**.
-  - Compilação TypeScript (`tsc`): **PASS** (0 erros).
-  - Vite production build: **PASS** (`dist/` gerado com sucesso em ~10.9s).
+```text
+src/features/stock-transfers/
+├── pages/
+│   └── StockMovementsPage.tsx          (294 linhas - God Component eliminado)
+├── components/
+│   ├── DirectMovementSection.tsx       (478 linhas)
+│   ├── MovementHistorySection.tsx      (238 linhas)
+│   ├── StockTransferSection.tsx        (221 linhas)
+│   ├── DirectGuideHistorySection.tsx   (137 linhas)
+│   ├── TransferHistorySection.tsx      (128 linhas)
+│   ├── StockModeSelector.tsx           (81 linhas)
+│   ├── CancelGuideModal.tsx            (68 linhas)
+│   └── TransferStatusBadge.tsx         (45 linhas)
+├── hooks/
+│   ├── useDirectStockMovement.ts       (352 linhas - com savingRef mutex e initialDraft)
+│   ├── useStockTransfersManagement.ts  (236 linhas - com transferWriteLockRef mutex)
+│   └── useStockMovementHistory.ts      (118 linhas - com initialMovements hydration)
+├── services/
+│   └── stockTransfers.service.ts       (167 linhas)
+└── utils/
+    └── stockTransferState.ts           (67 linhas - normalização e state machine canónica)
+```
+
+---
+
+## 6. VALIDAÇÃO AUTOMATIZADA DE BUILD & SEGURANÇA
+
+- **Testes Unitários e Componentes (Vitest):** `15/15` suites, **81/81 testes aprovados (100% PASS)** em ~850ms.
+- **Pipeline de Qualidade (`npm run check`):**
+  - Auditoria de segurança de credenciais: **PASS** (0 chaves de alto risco no repositório).
+  - Auditoria de dados operacionais estáticos: **PASS** (Branding multiempresa neutro).
+  - Contrato de validação de rollback da migração 016: **PASS**.
+  - Compilação TypeScript (`tsc`): **PASS** (0 erros de tipagem).
+  - Vite production build: **PASS** (`dist/` gerado com sucesso em ~17.1s).
 - **UI Freeze:** **100% preservado** (`UI_BASELINE = FROZEN` | `VISUAL_CHANGES = NONE`).
 - **Database Schema:** **100% inalterado** (`DATABASE_SCHEMA_CHANGED = NO` | `MIGRATIONS_ADDED = 0`).
 
 ---
 
-## 8. DECISÃO FINAL DO GATE
+## 7. DECISÃO FINAL DO GATE
 
 ```ini
+CANONICAL_TRANSFER_STATE_ALIGNMENT = PASS
+DIRECT_GUIDE_DOUBLE_SUBMIT_GUARD = PASS
+TRANSFER_CREATE_DOUBLE_SUBMIT_GUARD = PASS
+DIRECT_GUIDE_EDIT_PRODUCTION_PATH = PASS
+DIRECT_GUIDE_CANCEL_PRODUCTION_PATH = PASS
+CAN_CANCEL_GUIDE_PERMISSION = PASS
+BACKEND_STATE_MACHINE_SQL = VERIFIED
+CREATE_TRANSFER_IDEMPOTENCY_CLASSIFICATION = ACCURATE
+VITEST = PASS
+TYPECHECK = PASS
+BUILD = PASS
+SECURITY = PASS
+DATABASE_SCHEMA_CHANGED = NO
+MIGRATIONS_ADDED = 0
+VISUAL_CHANGES = NONE
+
 PHASE_04_STATUS = PASS
 READY_FOR_PHASE_05 = YES
 ```

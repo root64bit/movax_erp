@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { StockMovement } from '@/shared/types/domain.types';
 import type { StockTypeFilter } from '../types/stock-transfer.types';
 import { InventoryService } from '@/features/inventory/services/inventory.service';
@@ -11,9 +11,9 @@ export interface UseStockMovementHistoryProps {
 export function useStockMovementHistory({ initialMovements = [] }: UseStockMovementHistoryProps = {}) {
   const [movementsPage, setMovementsPage] = useState(1);
   const [movementsPageSize, setMovementsPageSize] = useState(25);
-  const [historyMovements, setHistoryMovements] = useState<StockMovement[]>([]);
-  const [historyTotalCount, setHistoryTotalCount] = useState(0);
-  const [historyTotalStock, setHistoryTotalStock] = useState(0);
+  const [historyMovements, setHistoryMovements] = useState<StockMovement[]>(() => initialMovements || []);
+  const [historyTotalCount, setHistoryTotalCount] = useState(() => initialMovements?.length || 0);
+  const [historyTotalStock, setHistoryTotalStock] = useState(() => (initialMovements || []).reduce((sum, m) => sum + (m.quantity || 0), 0));
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);

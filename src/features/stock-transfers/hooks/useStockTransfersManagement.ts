@@ -1,23 +1,23 @@
-﻿import { useState, useEffect, useCallback } from 'react';
-import type { Article, StockTransfer, AccessScope } from '@/shared/types/domain.types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { Article, AccessScope, StockTransfer } from '@/shared/types/domain.types';
 import type { GuideLineItem } from '../types/stock-transfer.types';
 import { StockTransfersService } from '../services/stockTransfers.service';
 
 export interface UseStockTransfersManagementProps {
   articles: Article[];
   warehouses: AccessScope[];
-  canTransfer: boolean;
-  canAllowNegative: boolean;
-  documentDate: string;
+  documentDate?: string;
+  canTransfer?: boolean;
+  canAllowNegative?: boolean;
   onSuccessCallback?: () => void;
 }
 
 export function useStockTransfersManagement({
   articles,
   warehouses,
-  canTransfer,
-  canAllowNegative,
-  documentDate,
+  documentDate: initialDocumentDate,
+  canTransfer = true,
+  canAllowNegative = false,
   onSuccessCallback,
 }: UseStockTransfersManagementProps) {
   const [transferFromWarehouseId, setTransferFromWarehouseId] = useState(() => warehouses[0]?.id || '');
@@ -25,10 +25,13 @@ export function useStockTransfersManagement({
   const [transferArticleId, setTransferArticleId] = useState('');
   const [resolvedTransferArticle, setResolvedTransferArticle] = useState<Article | null>(null);
   const [transferQuantityStr, setTransferQuantityStr] = useState('');
+  const [documentDate] = useState(() => initialDocumentDate || new Date().toISOString().slice(0, 10));
   const [transferNotes, setTransferNotes] = useState('');
   const [transferItems, setTransferItems] = useState<GuideLineItem[]>([]);
+
   const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [transferLoading, setTransferLoading] = useState(false);
+  const transferWriteLockRef = useRef(false);
   const [transferError, setTransferError] = useState('');
   const [transferSuccess, setTransferSuccess] = useState('');
   const [transferRefreshKey, setTransferRefreshKey] = useState(0);
@@ -87,7 +90,7 @@ export function useStockTransfersManagement({
   }, []);
 
   const sendTransfer = useCallback(async () => {
-    if (transferLoading) return;
+    if (transferWriteLockRef.current) return;
     if (!transferFromWarehouseId || !transferToWarehouseId || transferFromWarehouseId === transferToWarehouseId) {
       setTransferError('Escolha armazéns de origem e destino diferentes.');
       return;
@@ -96,6 +99,8 @@ export function useStockTransfersManagement({
       setTransferError('Adicione pelo menos um artigo à transferência.');
       return;
     }
+
+    transferWriteLockRef.current = true;
     setTransferLoading(true);
     setTransferError('');
     setTransferSuccess('');
@@ -119,10 +124,10 @@ export function useStockTransfersManagement({
     } catch (cause) {
       setTransferError(cause instanceof Error ? cause.message : 'Falha ao enviar transferência.');
     } finally {
+      transferWriteLockRef.current = false;
       setTransferLoading(false);
     }
   }, [
-    transferLoading,
     transferFromWarehouseId,
     transferToWarehouseId,
     transferItems,
@@ -132,7 +137,11 @@ export function useStockTransfersManagement({
   ]);
 
   const dispatchExistingTransfer = useCallback(async (transfer: StockTransfer) => {
-    if (!window.confirm(`Enviar ${transfer.transferNumber} de ${transfer.fromWarehouseName} para ${transfer.toWarehouseName}?`)) return;
+    if (transferWriteLockRef.current) return;
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      if (!window.confirm(`Enviar ${transfer.transferNumber} de ${transfer.fromWarehouseName} para ${transfer.toWarehouseName}?`)) return;
+    }
+    transferWriteLockRef.current = true;
     setTransferLoading(true);
     setTransferError('');
     setTransferSuccess('');
@@ -144,12 +153,17 @@ export function useStockTransfersManagement({
     } catch (cause) {
       setTransferError(cause instanceof Error ? cause.message : 'Falha ao enviar transferência.');
     } finally {
+      transferWriteLockRef.current = false;
       setTransferLoading(false);
     }
   }, [onSuccessCallback]);
 
   const receiveTransfer = useCallback(async (transfer: StockTransfer) => {
-    if (!window.confirm(`Confirmar recepção de ${transfer.transferNumber} em ${transfer.toWarehouseName}?`)) return;
+    if (transferWriteLockRef.current) return;
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      if (!window.confirm(`Confirmar recepção de ${transfer.transferNumber} em ${transfer.toWarehouseName}?`)) return;
+    }
+    transferWriteLockRef.current = true;
     setTransferLoading(true);
     setTransferError('');
     try {
@@ -160,13 +174,19 @@ export function useStockTransfersManagement({
     } catch (cause) {
       setTransferError(cause instanceof Error ? cause.message : 'Falha ao receber transferência.');
     } finally {
+      transferWriteLockRef.current = false;
       setTransferLoading(false);
     }
   }, [onSuccessCallback]);
 
   const voidTransfer = useCallback(async (transfer: StockTransfer) => {
-    const reason = window.prompt(`Motivo do cancelamento de ${transfer.transferNumber}:`, 'Cancelada pelo operador');
-    if (reason === null) return;
+    if (transferWriteLockRef.current) return;
+    let reason: string | null = 'Cancelada pelo operador';
+    if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
+      reason = window.prompt(`Motivo do cancelamento de ${transfer.transferNumber}:`, 'Cancelada pelo operador');
+      if (reason === null) return;
+    }
+    transferWriteLockRef.current = true;
     setTransferLoading(true);
     setTransferError('');
     try {
@@ -177,6 +197,7 @@ export function useStockTransfersManagement({
     } catch (cause) {
       setTransferError(cause instanceof Error ? cause.message : 'Falha ao cancelar transferência.');
     } finally {
+      transferWriteLockRef.current = false;
       setTransferLoading(false);
     }
   }, [onSuccessCallback]);
@@ -198,6 +219,7 @@ export function useStockTransfersManagement({
     setTransferItems,
     transfers,
     transferLoading,
+    transferWriteLockRef,
     transferError,
     setTransferError,
     transferSuccess,

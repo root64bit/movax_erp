@@ -1,19 +1,37 @@
 ﻿import type { StockTransfer, StockMovement } from '@/shared/types/domain.types';
 import type { GuideLineItem, StockMovementType } from '../types/stock-transfer.types';
 
-export function canDispatchTransfer(status: StockTransfer['status'] | string): boolean {
-  const norm = String(status || '').toUpperCase();
-  return norm === 'DRAFT' || norm === 'PENDING';
+export type CanonicalTransferStatus = 'PENDING' | 'IN_TRANSIT' | 'RECEIVED' | 'CANCELLED';
+
+/**
+ * Normalizes transfer status strings to canonical PostgreSQL database statuses:
+ * - PENDING (includes legacy DRAFT alias)
+ * - IN_TRANSIT (includes legacy DISPATCHED alias)
+ * - RECEIVED
+ * - CANCELLED
+ */
+export function normalizeTransferStatus(
+  status: StockTransfer['status'] | string | undefined | null
+): CanonicalTransferStatus | string {
+  const upper = String(status || '').trim().toUpperCase();
+  if (upper === 'PENDING' || upper === 'DRAFT') return 'PENDING';
+  if (upper === 'IN_TRANSIT' || upper === 'DISPATCHED') return 'IN_TRANSIT';
+  if (upper === 'RECEIVED') return 'RECEIVED';
+  if (upper === 'CANCELLED') return 'CANCELLED';
+  return upper;
 }
 
-export function canReceiveTransfer(status: StockTransfer['status'] | string): boolean {
-  const norm = String(status || '').toUpperCase();
-  return norm === 'IN_TRANSIT' || norm === 'DISPATCHED';
+export function canDispatchTransfer(status: StockTransfer['status'] | string | undefined | null): boolean {
+  return normalizeTransferStatus(status) === 'PENDING';
 }
 
-export function canCancelTransfer(status: StockTransfer['status'] | string): boolean {
-  const norm = String(status || '').toUpperCase();
-  return norm === 'DRAFT' || norm === 'PENDING' || norm === 'IN_TRANSIT' || norm === 'DISPATCHED';
+export function canReceiveTransfer(status: StockTransfer['status'] | string | undefined | null): boolean {
+  return normalizeTransferStatus(status) === 'IN_TRANSIT';
+}
+
+export function canCancelTransfer(status: StockTransfer['status'] | string | undefined | null): boolean {
+  const norm = normalizeTransferStatus(status);
+  return norm === 'PENDING' || norm === 'IN_TRANSIT';
 }
 
 export function calculateSupplierCreditTotal(items: GuideLineItem[]): number {

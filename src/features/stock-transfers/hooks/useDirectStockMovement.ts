@@ -7,6 +7,16 @@ export interface UseDirectStockMovementProps {
   suppliers: Supplier[];
   warehouses: AccessScope[];
   documents?: DocumentRecord[];
+  initialDraft?: {
+    guideNumber?: string;
+    warehouseId?: string;
+    items?: GuideLineItem[];
+    documentDate?: string;
+    type?: StockMovementType;
+    supplierId?: string;
+    notes?: string;
+    editingGuideId?: string | null;
+  };
   canPostEntry: boolean;
   canPostExit: boolean;
   canAllowNegative: boolean;
@@ -19,29 +29,31 @@ export function useDirectStockMovement({
   suppliers,
   warehouses,
   documents = [],
+  initialDraft,
   canPostEntry,
   canPostExit,
   canAllowNegative,
   onSaveGuide,
   onSuccessCallback,
 }: UseDirectStockMovementProps) {
-  const [type, setType] = useState<StockMovementType>(canPostEntry ? 'entrada' : 'saida');
-  const [warehouseId, setWarehouseId] = useState(() => warehouses[0]?.id || '');
+  const [type, setType] = useState<StockMovementType>(() => initialDraft?.type || (canPostEntry ? 'entrada' : 'saida'));
+  const [warehouseId, setWarehouseId] = useState(() => initialDraft?.warehouseId || warehouses[0]?.id || '');
   const [articleId, setArticleId] = useState('');
   const [resolvedArticle, setResolvedArticle] = useState<Article | null>(null);
   const [quantityStr, setQuantityStr] = useState('');
-  const [guideNumber, setGuideNumber] = useState('');
-  const [documentDate, setDocumentDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [supplierId, setSupplierId] = useState('');
+  const [guideNumber, setGuideNumber] = useState(() => initialDraft?.guideNumber || '');
+  const [documentDate, setDocumentDate] = useState(() => initialDraft?.documentDate || new Date().toISOString().slice(0, 10));
+  const [supplierId, setSupplierId] = useState(() => initialDraft?.supplierId || '');
   const [unitCostStr, setUnitCostStr] = useState('');
   const [priceWithIvaStr, setPriceWithIvaStr] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(() => initialDraft?.notes || '');
   
-  const [guideItems, setGuideItems] = useState<GuideLineItem[]>([]);
+  const [guideItems, setGuideItems] = useState<GuideLineItem[]>(() => initialDraft?.items || []);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [editingGuideId, setEditingGuideId] = useState<string | null>(null);
+  const [editingGuideId, setEditingGuideId] = useState<string | null>(() => initialDraft?.editingGuideId || null);
   const [lastSavedGuide, setLastSavedGuide] = useState<DocumentRecord | null>(null);
 
   const guideNumberRef = useRef<HTMLInputElement>(null);
@@ -225,6 +237,11 @@ export function useDirectStockMovement({
       return;
     }
 
+    if (savingRef.current) {
+      return;
+    }
+
+    savingRef.current = true;
     setSaving(true);
     setError('');
     setSuccess('');
@@ -269,6 +286,7 @@ export function useDirectStockMovement({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Falha ao registar movimento de stock.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, [
@@ -317,6 +335,7 @@ export function useDirectStockMovement({
     guideItems,
     setGuideItems,
     saving,
+    savingRef,
     error,
     setError,
     success,
