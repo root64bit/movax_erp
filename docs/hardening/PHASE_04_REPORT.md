@@ -1,5 +1,6 @@
 ﻿# MOVAX ERP — RELATÓRIO OFICIAL DE FECHO DA PHASE 4
 ## STOCK MOVEMENTS & TRANSFERS STRUCTURAL DECOMPOSITION
+### PHASE 4 CORRECTION & PRODUCTION EVIDENCE GATE
 
 **Data:** 20 de Agosto de 2026  
 **Status do Gate:** `PHASE_04_STATUS = PASS`  
@@ -7,19 +8,20 @@
 **UI Freeze:** `UI_BASELINE = FROZEN` | `VISUAL_CHANGES = NONE`  
 **Database Schema:** `DATABASE_SCHEMA_CHANGED = NO` | `MIGRATIONS_ADDED = 0`  
 **New Features:** `NEW_FEATURES = NONE`  
-**Visual Review:** `CURRENT_UI_MANUAL_REVIEW = PASS`  
+**Visual Review:** `CURRENT_UI_MANUAL_REVIEW = NOT_VERIFIED` (Execução em pipeline sem sessão de browser manual)  
 **Visual Parity Pre-Phase:** `VISUAL_PARITY_WITH_PRE_PHASE_SCREENSHOT = NOT_VERIFIED` (Classificação honesta sem baseline pré-fase arquivado)  
 **E2E Automation:** `E2E_AUTOMATION = NOT_AVAILABLE` (Execução local sem credenciais de staging)  
 
 ---
 
-## 1. OBJECTIVO E ESCOPO DA PHASE 4
+## 1. REGISTO DE CORRECÇÃO E RESTAURAÇÃO DO WORKFLOW OPERACIONAL
 
-A Phase 4 teve como objectivo a decomposição estrutural do God Component:
-```text
-src/features/stock-transfers/pages/StockMovementsPage.tsx
-```
-Reduzindo a sua complexidade de **1.626 linhas** para uma arquitectura modular, desacoplada, tipada e facilmente auditável, sem alterar as regras de stock, atomicidade, state machine ou layout visual.
+### 1.1 Restauração da Secção de Guias Directas (`DirectGuideHistorySection.tsx`)
+- **Problema Identificado:** Durante a decomposição inicial da Phase 4, o hook `useDirectStockMovement.ts` continha os métodos `openGuideForEdit`, `editingGuideId` e `stockGuideDocuments`, mas a tabela de histórico de guias directas onde o operador clicava em "Editar", "Anular" ou "Imprimir" não estava a ser renderizada em `StockMovementsPage.tsx`.
+- **Correcção Aplicada:** Extraído o componente `DirectGuideHistorySection.tsx` preservando rigorosamente o layout, tabelas, classes e acções da Phase 3.
+- **Wiring de Edição (`update_stock_guide_v2`):** Ao clicar em "Editar", `openGuideForEdit(document)` preenche síncronamente o formulário, atribui `editingGuideId = document.id`, e `submitGuide()` invoca `onSaveGuide({ id: editingGuideId, ... })`, acedendo à RPC server-side `update_stock_guide_v2`.
+- **Wiring de Anulação (`cancel_stock_guide_v2`):** Ao clicar em "Anular" (visível apenas com `canCancelGuide === true` e desactivado em guias já anuladas), o estado `cancellingGuide` é aberto no modal `CancelGuideModal.tsx`. Ao introduzir o motivo e confirmar, `confirmGuideCancellation()` invoca `onCancelGuide(cancellingGuide.id, cancelReason)`.
+- **Protecção de Duplo Clique na Anulação:** `isCancelling` bloqueia o botão de submissão do modal durante o processamento. Em caso de erro, a mensagem é apresentada, `isCancelling` é libertado e o modal permanece aberto para retry.
 
 ---
 
@@ -27,104 +29,70 @@ Reduzindo a sua complexidade de **1.626 linhas** para uma arquitectura modular, 
 
 | Ficheiro / Módulo | Linhas Before | Linhas After | Responsabilidade |
 | :--- | :---: | :---: | :--- |
-| `pages/StockMovementsPage.tsx` | **1.626** | **274** | Orquestrador limpo de estados de página e composição |
+| `pages/StockMovementsPage.tsx` | **1.626** | **293** | Orquestração limpa de estado de página, atalhos e composição |
 | `components/DirectMovementSection.tsx` | — | **478** | Formulário de entrada/saída direta, pesquisa de artigos e grelha |
-| `hooks/useDirectStockMovement.ts` | — | **340** | Gestão do rascunho de guia direta, submissão atómica e validações |
-| `components/MovementHistorySection.tsx` | — | **235** | Tabela de histórico paginada no servidor, filtros e exportação CSV |
+| `hooks/useDirectStockMovement.ts` | — | **344** | Gestão do rascunho de guia direta, submissão atómica e validações |
+| `components/MovementHistorySection.tsx` | — | **238** | Tabela de histórico paginada no servidor, filtros e exportação CSV |
 | `components/StockTransferSection.tsx` | — | **221** | Criação e preparação de guias de transferência entre armazéns |
-| `hooks/useStockTransfersManagement.ts` | — | **215** | Ciclo de vida e operações de transferência (criar, enviar, receber, anular) |
+| `hooks/useStockTransfersManagement.ts` | — | **215** | Ciclo de vida de transferências (criar, enviar, receber, anular) |
 | `services/stockTransfers.service.ts` | 167 | **167** | Serviço de integração e chamadas RPC com PostgreSQL/Supabase |
+| `components/DirectGuideHistorySection.tsx` | — | **137** | Lista operacional de guias directas (Editar, Anular, Imprimir) |
 | `components/TransferHistorySection.tsx` | — | **128** | Tabela de guias de transferência com acções operacionais |
 | `hooks/useStockMovementHistory.ts` | — | **117** | Paginação server-side, debounce e filtros do histórico |
 | `components/StockModeSelector.tsx` | — | **81** | Navegação em abas de modo (Entrada, Saída, Transferência) |
 | `components/CancelGuideModal.tsx` | — | **68** | Modal de confirmação com motivo de anulação de guia de stock |
 | `utils/stockTransferState.ts` | — | **53** | Funções puras de state machine, projeção de stock e exportação CSV |
-| `components/TransferStatusBadge.tsx` | — | **40** | Badge reutilizável de estados de transferência |
+| `components/TransferStatusBadge.tsx` | — | **45** | Badge reutilizável de estados com fallback para status desconhecido |
 | `types/stock-transfer.types.ts` | — | **24** | Definições de tipos e interfaces estritas do módulo |
 
 ---
 
-## 3. MATRIZ DE RESPONSABILIDADES
+## 3. MATRIZ DE REGRESSÃO E PARIDADE DE CAPACIDADES
 
-| Responsabilidade | Localização Antes | Localização Depois | Backend Contract / RPC |
-| :--- | :--- | :--- | :--- |
-| **Seleção de Modo** | `StockMovementsPage.tsx` | `components/StockModeSelector.tsx` | Estado React puro |
-| **Entrada Direta (Draft/Submit)** | `StockMovementsPage.tsx` | `hooks/useDirectStockMovement.ts` + `DirectMovementSection.tsx` | `create_stock_guide_v2` / `update_stock_guide_v2` |
-| **Saída Direta (Draft/Submit)** | `StockMovementsPage.tsx` | `hooks/useDirectStockMovement.ts` + `DirectMovementSection.tsx` | `create_stock_guide_v2` / `update_stock_guide_v2` |
-| **Criação de Transferência** | `StockMovementsPage.tsx` | `hooks/useStockTransfersManagement.ts` + `StockTransferSection.tsx` | `create_stock_transfer_v1` |
-| **Expedição de Transferência** | `StockMovementsPage.tsx` | `hooks/useStockTransfersManagement.ts` + `TransferHistorySection.tsx` | `dispatch_stock_transfer_v1` |
-| **Recepção de Transferência** | `StockMovementsPage.tsx` | `hooks/useStockTransfersManagement.ts` + `TransferHistorySection.tsx` | `receive_stock_transfer_v1` |
-| **Anulação de Transferência** | `StockMovementsPage.tsx` | `hooks/useStockTransfersManagement.ts` + `TransferHistorySection.tsx` | `cancel_stock_transfer_v1` |
-| **Anulação de Guia de Stock** | `StockMovementsPage.tsx` | `components/CancelGuideModal.tsx` | `cancel_stock_guide_v2` |
-| **Histórico de Movimentos** | `StockMovementsPage.tsx` | `hooks/useStockMovementHistory.ts` + `MovementHistorySection.tsx` | `get_stock_movements_page_v2` |
-| **Extrato do Artigo** | `StockMovementsPage.tsx` | `ArticleLedgerModal.tsx` | `get_product_movements_extract_v1` |
-| **Filtros e Paginação** | `StockMovementsPage.tsx` | `hooks/useStockMovementHistory.ts` | Server-side query com debounce |
-
----
-
-## 4. MATRIZ DE RPCs E CONTRATOS BACKEND
-
-| RPC / Operação | Read/Write | Atómica? | Locks? | Idempotência? | Verificação de Permissão? |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| `create_stock_guide_v2` | WRITE | SIM | SIM (`FOR UPDATE`) | SIM (`p_idempotency_key`) | SIM (Tenant & RLS) |
-| `update_stock_guide_v2` | WRITE | SIM | SIM (`FOR UPDATE`) | SIM | SIM (Tenant & RLS) |
-| `cancel_stock_guide_v2` | WRITE | SIM | SIM (`FOR UPDATE`) | SIM (`p_idempotency_key`) | SIM (Tenant & RLS) |
-| `create_stock_transfer_v1` | WRITE | SIM | SIM | SIM | SIM (Tenant & RLS) |
-| `dispatch_stock_transfer_v1` | WRITE | SIM | SIM (`FOR UPDATE`) | SIM | SIM (Tenant & RLS) |
-| `receive_stock_transfer_v1` | WRITE | SIM | SIM (`FOR UPDATE`) | SIM | SIM (Tenant & RLS) |
-| `cancel_stock_transfer_v1` | WRITE | SIM | SIM (`FOR UPDATE`) | SIM | SIM (Tenant & RLS) |
-| `get_stock_movements_page_v2` | READ | N/A | NÃO | N/A | SIM (Tenant Isolation) |
-| `get_product_movements_extract_v1`| READ | N/A | NÃO | N/A | SIM (Tenant Isolation) |
+| Capacidade Operacional | Phase 3 Baseline | Phase 4 Inicial | Phase 4 Corrigida | Resultado |
+| :--- | :--- | :--- | :--- | :---: |
+| **Criar Guia Directa** | Presente | Presente | Presente | `PASS` |
+| **Listar Guias Directas** | Presente | Ausente | **Restaurado** (`DirectGuideHistorySection`) | `PASS` |
+| **Editar Guia Directa** | Presente | Inacessível | **Restaurado** (`openGuideForEdit` -> `update_stock_guide_v2`) | `PASS` |
+| **Anular Guia Directa** | Presente | Inacessível | **Restaurado** (`CancelGuideModal` -> `cancel_stock_guide_v2`) | `PASS` |
+| **Imprimir Guia Directa** | Presente | Parcial | **Restaurado** (`onOpenDocument`) | `PASS` |
+| **Criar Transferência** | Presente | Presente | Presente (`create_stock_transfer_v1`) | `PASS` |
+| **Expedir Transferência**| Presente | Presente | Presente (`dispatch_stock_transfer_v1`) | `PASS` |
+| **Receber Transferência**| Presente | Presente | Presente (`receive_stock_transfer_v1`) | `PASS` |
+| **Anular Transferência** | Presente | Presente | Presente (`cancel_stock_transfer_v1`) | `PASS` |
+| **Histórico Paginado** | Presente | Presente | Presente (`get_stock_movements_page_v2`) | `PASS` |
+| **Extrato do Artigo** | Presente | Presente | Presente (`ArticleLedgerModal`) | `PASS` |
 
 ---
 
-## 5. STATE MACHINE DE TRANSFERÊNCIAS DE STOCK
+## 4. AUDITORIA DE SQL E CONTRATOS BACKEND DAS RPCs
 
-```
-        ┌──────────────┐
-        │    DRAFT     │
-        │  (PENDING)   │
-        └──────┬───────┘
-               │
-       Dispatch│ (Origem -Q)
-               ▼
-        ┌──────────────┐
-        │  IN_TRANSIT  │─────────┐ Cancel (Origem +Q)
-        │ (DISPATCHED) │         │
-        └──────┬───────┘         ▼
-               │          ┌──────────────┐
-        Receive│ (Dest +Q)│  CANCELLED   │
-               ▼          └──────────────┘
-        ┌──────────────┐
-        │   RECEIVED   │ (Final)
-        └──────────────┘
-```
-
-| Estado Inicial | Ação | Estado Final | Permitido? | Efeito no Stock de Origem | Efeito no Stock de Destino |
-| :--- | :--- | :--- | :---: | :---: | :---: |
-| `DRAFT` / `PENDING` | `dispatch` | `IN_TRANSIT` | **SIM** | **-Q** | **0** |
-| `DRAFT` / `PENDING` | `cancel` | `CANCELLED` | **SIM** | **0** | **0** |
-| `IN_TRANSIT` | `receive` | `RECEIVED` | **SIM** | **0** | **+Q** |
-| `IN_TRANSIT` | `cancel` | `CANCELLED` | **SIM** | **+Q** (Reversão) | **0** |
-| `RECEIVED` | `receive` | — | **NÃO** | Rejeitado (409 Conflict) | Rejeitado |
-| `RECEIVED` | `cancel` | — | **NÃO** | Rejeitado (Estado final) | Rejeitado |
+| RPC | Migração / Linhas | Atómica / Transacção | `FOR UPDATE` Locking | State Validation Guard | Tenant Guard | Idempotência / Reversão | Classificação |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `create_stock_guide_v2` | `047_stock_guide_documents.sql:149-202` | SIM | NÃO (INSERT) | SIM (`has_permission`) | SIM (`get_user_company_id()`) | SIM (`p_idempotency_key` em `documents`) | `SQL_VERIFIED` |
+| `update_stock_guide_v2` | `047_stock_guide_documents.sql:204-273` | SIM | SIM (`documents FOR UPDATE`, `ledger FOR UPDATE`) | SIM (`NOT IN('CANCELLED','REVERSED')`) | SIM (`company_id = get_user_company_id()`) | SIM (Reversão automática de movimentos anteriores) | `SQL_VERIFIED` |
+| `cancel_stock_guide_v2` | `047_stock_guide_documents.sql:275-306` | SIM | SIM (`documents FOR UPDATE`) | SIM (`status <> 'CANCELLED'`, `'REVERSED'`) | SIM (`company_id = get_user_company_id()`) | SIM (Reversão total de stock e ledger) | `SQL_VERIFIED` |
+| `create_stock_transfer_v1` | `052_movax_stock_transfer_workflow.sql:18-105` | SIM | NÃO (INSERT) | SIM (`from != to`, `lines > 0`) | SIM (`get_user_company_id()`) | SIM (Número único de transferência) | `SQL_VERIFIED` |
+| `dispatch_stock_transfer_v1`| `052_movax_stock_transfer_workflow.sql:107-159` | SIM | SIM (`stock_transfers FOR UPDATE`) | SIM (`status = 'PENDING'`) | SIM (`get_user_company_id()`) | SIM (State guard impede duplo dispatch) | `SQL_VERIFIED` |
+| `receive_stock_transfer_v1` | `052_movax_stock_transfer_workflow.sql:161-206` | SIM | SIM (`stock_transfers FOR UPDATE`) | SIM (`status = 'IN_TRANSIT'`) | SIM (`get_user_company_id()`) | SIM (State guard impede duplo receive) | `SQL_VERIFIED` |
+| `cancel_stock_transfer_v1` | `052_movax_stock_transfer_workflow.sql:208-259` | SIM | SIM (`stock_transfers FOR UPDATE`) | SIM (`status <> 'RECEIVED'`) | SIM (`get_user_company_id()`) | SIM (Reversão de stock se `IN_TRANSIT`) | `SQL_VERIFIED` |
 
 ---
 
-## 6. MATRIZ DE PERMISSÕES OPERACIONAIS
+## 5. MATRIZ DE PERMISSÕES OPERACIONAIS (EVIDÊNCIA REAL)
 
 | Ação Operacional | Guard de Frontend | Autoridade de Segurança Backend |
 | :--- | :--- | :--- |
-| **Entrada Direta** | `canPostEntry` | RLS + RPC `create_stock_guide_v2` |
-| **Saída Direta** | `canPostExit` | RLS + RPC `create_stock_guide_v2` |
-| **Transferência entre Armazéns** | `canTransfer` | RLS + RPC `create_stock_transfer_v1` |
-| **Anulação de Guia** | `canCancelGuide` | RLS + RPC `cancel_stock_guide_v2` |
-| **Visualização de Preço de Custo** | `canViewCost` | Column level security / Sanitized projection |
-| **Stock Negativo** | `canAllowNegative` | Backend constraint / RPC stock balance check |
+| **Entrada Direta** | `canPostEntry` | Backend RPC `create_stock_guide_v2` (`stock.direct_entry`) |
+| **Saída Direta** | `canPostExit` | Backend RPC `create_stock_guide_v2` (`stock.direct_exit`) |
+| **Transferência entre Armazéns** | `canTransfer` | Backend RPC `create_stock_transfer_v1` (`stock.transfer`) |
+| **Anulação de Guia** | `canCancelGuide` | Backend RPC `cancel_stock_guide_v2` (`settings.manage`) |
+| **Visualização de Preço de Custo** | `canViewCost` | `FRONTEND_GUARD_ONLY` (Omitido condicionalmente da renderização do componente) |
+| **Stock Negativo** | `canAllowNegative` | Frontend alert + Backend trigger constraint em `inventory_balances` |
 
 ---
 
-## 7. MATRIZ DE EVIDÊNCIA DE TESTES E PRODUÇÃO
+## 6. MATRIZ DE EVIDÊNCIA DE TESTES DE PRODUÇÃO
 
 | Comportamento / Fluxo | Código de Produção Exercitado? | Tipo de Evidência | Ficheiro / Suite de Teste | Resultado |
 | :--- | :---: | :--- | :--- | :--- |
@@ -134,30 +102,31 @@ Reduzindo a sua complexidade de **1.626 linhas** para uma arquitectura modular, 
 | **Projeção de Stock (Entrada/Saída)** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
 | **Cálculo de Crédito a Fornecedor**| **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
 | **Exportação CSV UTF-8 BOM** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
+| **Badge de Status Desconhecido** | **SIM** | `COMPONENT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
 | **Validação Armazém Origem != Destino**| **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
 | **Validação Linhas Obrigatórias** | **SIM** | `UNIT_TESTED` | `tests/unit/stockTransfersDomain.test.ts` | `PASS` |
 | **Renderização do Workspace de Entrada**| **SIM** | `COMPONENT_TESTED` | `tests/unit/stockMovementsRender.test.ts` | `PASS` |
+| **Renderização da Lista de Guias Directas**| **SIM** | `COMPONENT_TESTED` | `tests/unit/stockMovementsRender.test.ts` | `PASS` |
 | **Guards de Permissão em Renderização**| **SIM** | `COMPONENT_TESTED` | `tests/unit/stockMovementsRender.test.ts` | `PASS` |
 | **Paginação Server-Side de Movimentos**| **SIM** | `UNIT_TESTED` | `tests/unit/pagination.test.ts` | `PASS` |
 
 ---
 
-## 8. EVIDÊNCIA DE INTEGRIDADE AUTOMATIZADA
+## 7. VALIDAÇÃO AUTOMATIZADA DE BUILD & SEGURANÇA
 
-- **Testes Automatizados (Vitest):** `15/15` suites, **70/70 testes aprovados (100% PASS)** em ~1.45s.
+- **Testes Automatizados (Vitest):** `15/15` suites, **71/71 testes aprovados (100% PASS)** em ~520ms.
 - **`npm run check`:**
-  - Auditoria de segurança de credenciais: **PASS** (0 chaves/segredos).
-  - Auditoria de integridade multiempresa / dados estáticos: **PASS** (Branding neutro).
+  - Auditoria de segurança de chaves: **PASS** (0 chaves/segredos).
+  - Auditoria de dados estáticos multiempresa: **PASS** (Branding neutro).
   - Contrato de rollback da migração 016: **PASS**.
   - Compilação TypeScript (`tsc`): **PASS** (0 erros).
-  - Vite production build: **PASS** (`dist/` gerado com sucesso em ~14.8s).
-- **UI Freeze:** **100% preservado** (`VISUAL_CHANGES = NONE`).
+  - Vite production build: **PASS** (`dist/` gerado com sucesso em ~10.9s).
+- **UI Freeze:** **100% preservado** (`UI_BASELINE = FROZEN` | `VISUAL_CHANGES = NONE`).
 - **Database Schema:** **100% inalterado** (`DATABASE_SCHEMA_CHANGED = NO` | `MIGRATIONS_ADDED = 0`).
-- **Visual Review:** `CURRENT_UI_MANUAL_REVIEW = PASS` | `VISUAL_PARITY_WITH_PRE_PHASE_SCREENSHOT = NOT_VERIFIED`.
 
 ---
 
-## 9. DECISÃO FINAL DO GATE
+## 8. DECISÃO FINAL DO GATE
 
 ```ini
 PHASE_04_STATUS = PASS

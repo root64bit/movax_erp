@@ -8,6 +8,7 @@ import { useStockTransfersManagement } from '../hooks/useStockTransfersManagemen
 import { useStockMovementHistory } from '../hooks/useStockMovementHistory';
 import { StockModeSelector } from '../components/StockModeSelector';
 import { DirectMovementSection } from '../components/DirectMovementSection';
+import { DirectGuideHistorySection } from '../components/DirectGuideHistorySection';
 import { StockTransferSection } from '../components/StockTransferSection';
 import { TransferHistorySection } from '../components/TransferHistorySection';
 import { MovementHistorySection } from '../components/MovementHistorySection';
@@ -134,57 +135,72 @@ export const StockMovements: React.FC<StockMovementsProps> = ({
       />
 
       {workspaceMode === 'direct' && (canPostEntry || canPostExit) && (
-        <DirectMovementSection
-          type={directMovement.type}
-          onTypeChange={directMovement.setType}
-          warehouseId={directMovement.warehouseId}
-          onWarehouseChange={directMovement.setWarehouseId}
-          warehouses={warehouses}
-          guideNumber={directMovement.guideNumber}
-          onGuideNumberChange={directMovement.setGuideNumber}
-          documentDate={directMovement.documentDate}
-          onDocumentDateChange={directMovement.setDocumentDate}
-          supplierId={directMovement.supplierId}
-          onSupplierChange={directMovement.setSupplierId}
-          suppliers={suppliers}
-          notes={directMovement.notes}
-          onNotesChange={directMovement.setNotes}
-          operatorName={operatorName}
-          canPostEntry={canPostEntry}
-          canPostExit={canPostExit}
-          canViewCost={canViewCost}
-          articles={articles}
-          articleId={directMovement.articleId}
-          onSelectArticle={directMovement.handleSelectArticle}
-          onAfterArticleSelect={directMovement.handleAfterArticleSelect}
-          resolvedArticle={directMovement.resolvedArticle}
-          onResolveArticle={directMovement.setResolvedArticle}
-          directArticleLoader={directArticleLoader}
-          quantityStr={directMovement.quantityStr}
-          onQuantityChange={directMovement.setQuantityStr}
-          unitCostStr={directMovement.unitCostStr}
-          onUnitCostChange={directMovement.setUnitCostStr}
-          priceWithIvaStr={directMovement.priceWithIvaStr}
-          onPriceWithIvaChange={directMovement.setPriceWithIvaStr}
-          article={directMovement.article}
-          guideItems={directMovement.guideItems}
-          editingGuideId={directMovement.editingGuideId}
-          editingDocument={directMovement.editingDocument}
-          saving={directMovement.saving}
-          error={directMovement.error}
-          success={directMovement.success}
-          lastSavedGuide={directMovement.lastSavedGuide}
-          guideNumberRef={directMovement.guideNumberRef}
-          notesRef={directMovement.notesRef}
-          qtyInputRef={directMovement.qtyInputRef}
-          costInputRef={directMovement.costInputRef}
-          priceInputRef={directMovement.priceInputRef}
-          onAddItemToGuide={directMovement.addItemToGuide}
-          onRemoveItemFromGuide={directMovement.removeItemFromGuide}
-          onClearGuideForm={directMovement.clearGuideForm}
-          onSubmitGuide={directMovement.submitGuide}
-          onOpenDocument={onOpenDocument}
-        />
+        <div className="space-y-6">
+          <DirectMovementSection
+            type={directMovement.type}
+            onTypeChange={directMovement.setType}
+            warehouseId={directMovement.warehouseId}
+            onWarehouseChange={directMovement.setWarehouseId}
+            warehouses={warehouses}
+            guideNumber={directMovement.guideNumber}
+            onGuideNumberChange={directMovement.setGuideNumber}
+            documentDate={directMovement.documentDate}
+            onDocumentDateChange={directMovement.setDocumentDate}
+            supplierId={directMovement.supplierId}
+            onSupplierChange={directMovement.setSupplierId}
+            suppliers={suppliers}
+            notes={directMovement.notes}
+            onNotesChange={directMovement.setNotes}
+            operatorName={operatorName}
+            canPostEntry={canPostEntry}
+            canPostExit={canPostExit}
+            canViewCost={canViewCost}
+            articles={articles}
+            articleId={directMovement.articleId}
+            onSelectArticle={directMovement.handleSelectArticle}
+            onAfterArticleSelect={directMovement.handleAfterArticleSelect}
+            resolvedArticle={directMovement.resolvedArticle}
+            onResolveArticle={directMovement.setResolvedArticle}
+            directArticleLoader={directArticleLoader}
+            quantityStr={directMovement.quantityStr}
+            onQuantityChange={directMovement.setQuantityStr}
+            unitCostStr={directMovement.unitCostStr}
+            onUnitCostChange={directMovement.setUnitCostStr}
+            priceWithIvaStr={directMovement.priceWithIvaStr}
+            onPriceWithIvaChange={directMovement.setPriceWithIvaStr}
+            article={directMovement.article}
+            guideItems={directMovement.guideItems}
+            editingGuideId={directMovement.editingGuideId}
+            editingDocument={directMovement.editingDocument}
+            saving={directMovement.saving}
+            error={directMovement.error}
+            success={directMovement.success}
+            lastSavedGuide={directMovement.lastSavedGuide}
+            guideNumberRef={directMovement.guideNumberRef}
+            notesRef={directMovement.notesRef}
+            qtyInputRef={directMovement.qtyInputRef}
+            costInputRef={directMovement.costInputRef}
+            priceInputRef={directMovement.priceInputRef}
+            onAddItemToGuide={directMovement.addItemToGuide}
+            onRemoveItemFromGuide={directMovement.removeItemFromGuide}
+            onClearGuideForm={directMovement.clearGuideForm}
+            onSubmitGuide={directMovement.submitGuide}
+            onOpenDocument={onOpenDocument}
+          />
+
+          <DirectGuideHistorySection
+            stockGuideDocuments={directMovement.stockGuideDocuments}
+            lastSavedGuide={directMovement.lastSavedGuide}
+            canCancelGuide={canCancelGuide}
+            onOpenDocument={onOpenDocument}
+            onEditGuide={directMovement.openGuideForEdit}
+            onCancelGuide={(doc) => {
+              setCancellingGuide(doc);
+              setCancelReason('');
+              directMovement.setError('');
+            }}
+          />
+        </div>
       )}
 
       {workspaceMode === 'transfer' && canTransfer && (

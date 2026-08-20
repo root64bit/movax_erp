@@ -1,4 +1,6 @@
 ﻿import { describe, it, expect, vi } from 'vitest';
+import React from 'react';
+import { renderToString } from 'react-dom/server';
 import {
   canDispatchTransfer,
   canReceiveTransfer,
@@ -8,6 +10,7 @@ import {
   buildStockMovementsCsv,
 } from '../../src/features/stock-transfers/utils/stockTransferState';
 import { StockTransfersService } from '../../src/features/stock-transfers/services/stockTransfers.service';
+import { TransferStatusBadge } from '../../src/features/stock-transfers/components/TransferStatusBadge';
 import type { StockMovement, StockGuideItem } from '../../src/shared/types/domain.types';
 
 describe('Stock Transfers Domain & State Machine Contract', () => {
@@ -45,18 +48,21 @@ describe('Stock Transfers Domain & State Machine Contract', () => {
     });
   });
 
+  describe('TransferStatusBadge Unknown Status Handling', () => {
+    it('renders neutral badge with raw status when unknown status is encountered', () => {
+      const htmlUnknown = renderToString(React.createElement(TransferStatusBadge, { status: 'CUSTOM_REVIEW' }));
+      expect(htmlUnknown).toContain('CUSTOM_REVIEW');
+
+      const htmlEmpty = renderToString(React.createElement(TransferStatusBadge, { status: '' }));
+      expect(htmlEmpty).toContain('Desconhecido');
+    });
+  });
+
   describe('Stock Projection and Calculations', () => {
     it('projects stock increase for entrada and decrease for saida', () => {
-      // Direct entrada of 5 units on initial stock 10
       expect(projectStockAfterMovement(10, 'entrada', 5, 0)).toBe(15);
-
-      // Direct saida of 4 units on initial stock 10
       expect(projectStockAfterMovement(10, 'saida', 4, 0)).toBe(6);
-
-      // Editing existing entrada from 5 units to 8 units
       expect(projectStockAfterMovement(15, 'entrada', 8, 5)).toBe(18);
-
-      // Editing existing saida from 4 units to 2 units (2 units returned to stock)
       expect(projectStockAfterMovement(6, 'saida', 2, 4)).toBe(8);
     });
 
@@ -76,12 +82,13 @@ describe('Stock Transfers Domain & State Machine Contract', () => {
           id: 'mov-1',
           date: '2026-08-20T10:00:00Z',
           type: 'entrada',
-          articleId: 'art-1',
           articleCode: 'PNEU-01',
           articleDescription: 'Pneu Radial 175/70',
           quantity: 20,
           balanceAfter: 50,
           docRef: 'GUIA-001',
+          entityName: '',
+          operator: 'Operador',
         },
       ];
 

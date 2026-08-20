@@ -2,7 +2,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { StockMovements } from '../../src/features/stock-transfers/pages/StockMovementsPage';
-import type { AccessScope, Article, Supplier, StockMovement } from '../../src/shared/types/domain.types';
+import type { AccessScope, Article, Supplier, StockMovement, DocumentRecord } from '../../src/shared/types/domain.types';
 
 describe('StockMovements Page Component Render & UI Freeze Contract', () => {
   const dummyWarehouses: AccessScope[] = [
@@ -43,25 +43,53 @@ describe('StockMovements Page Component Render & UI Freeze Contract', () => {
       id: 'mov-1',
       date: '2026-08-20T08:00:00Z',
       type: 'entrada',
-      articleId: 'art-1',
+      productId: 'art-1',
       articleCode: 'PNEU-01',
       articleDescription: 'Pneu Radial 175/70 R13',
       quantity: 10,
       balanceAfter: 45,
       docRef: 'GUIA-2026/001',
+      entityName: '',
+      operator: 'Operador Almoxarifado',
     },
   ];
 
-  it('renders direct entrada workspace mode correctly with all operational controls', () => {
+  const dummyDocuments: DocumentRecord[] = [
+    {
+      id: 'doc-entry-1',
+      displayNumber: 'GUIA-2026/001',
+      externalReference: 'GUIA-2026/001',
+      date: '2026-08-20',
+      typeCode: 'STOCK_ENTRY_GUIDE',
+      partyId: 'sup-1',
+      partyName: 'Distribuidora Central, Lda',
+      status: 'CONFIRMED',
+      grandTotal: 15000,
+      stockGuideItems: [
+        {
+          articleId: 'art-1',
+          articleCode: 'PNEU-01',
+          articleDescription: 'Pneu Radial 175/70 R13',
+          quantity: 10,
+          unitCost: 1500,
+          currentStock: 45,
+        },
+      ],
+    },
+  ];
+
+  it('renders direct entrada workspace mode correctly with all operational controls and direct guides table', () => {
     const html = renderToString(
       React.createElement(StockMovements, {
         movements: dummyMovements,
         articles: dummyArticles,
         suppliers: dummySuppliers,
+        documents: dummyDocuments,
         warehouses: dummyWarehouses,
         operatorName: 'Operador Almoxarifado',
         onSaveGuide: vi.fn(),
         onCancelGuide: vi.fn(),
+        onOpenDocument: vi.fn(),
         canPostEntry: true,
         canPostExit: true,
         canAllowNegative: false,
@@ -75,16 +103,23 @@ describe('StockMovements Page Component Render & UI Freeze Contract', () => {
     expect(html).toContain('Entrada de stock');
     expect(html).toContain('Armazém Central');
     expect(html).toContain('Gravar e Confirmar Guia (F2)');
+    expect(html).toContain('Guias de Entrada');
+    expect(html).toContain('GUIA-2026/001');
+    expect(html).toContain('Distribuidora Central, Lda');
+    expect(html).toContain('Editar');
+    expect(html).toContain('Anular');
+    expect(html).toContain('Imprimir');
     expect(html).toContain('Histórico Oficial de Movimentos de Stock');
     expect(html).toContain('Exportar CSV');
   });
 
-  it('renders permission guards properly when user only has exit permission', () => {
+  it('renders permission guards properly when user only has exit permission and cannot cancel guides', () => {
     const html = renderToString(
       React.createElement(StockMovements, {
         movements: dummyMovements,
         articles: dummyArticles,
         suppliers: dummySuppliers,
+        documents: dummyDocuments,
         warehouses: dummyWarehouses,
         operatorName: 'Operador Balcão',
         onSaveGuide: vi.fn(),
@@ -101,5 +136,7 @@ describe('StockMovements Page Component Render & UI Freeze Contract', () => {
     // Entrada tab should not be rendered
     expect(html).toContain('Saída de stock');
     expect(html).not.toContain('Custo Unit.');
+    // Anular button should not be rendered when canCancelGuide is false
+    expect(html).not.toContain('title="Anular guia e reverter stock"');
   });
 });

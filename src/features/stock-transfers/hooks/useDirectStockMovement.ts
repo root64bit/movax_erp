@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import type { Article, DocumentRecord, StockGuideInput, Supplier, AccessScope } from '@/shared/types/domain.types';
 import type { GuideLineItem, StockMovementType } from '../types/stock-transfer.types';
 
@@ -165,7 +165,9 @@ export function useDirectStockMovement({
     })));
     setError('');
     setSuccess('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [articles, warehouses]);
 
   const submitGuide = useCallback(async () => {
@@ -321,6 +323,7 @@ export function useDirectStockMovement({
     setSuccess,
     editingGuideId,
     editingDocument,
+    stockGuideDocuments,
     lastSavedGuide,
     setLastSavedGuide,
     article,

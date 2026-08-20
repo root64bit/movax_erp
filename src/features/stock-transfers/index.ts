@@ -8,6 +8,7 @@ export * from './hooks/useStockMovementHistory';
 export * from './components/StockModeSelector';
 export * from './components/TransferStatusBadge';
 export * from './components/DirectMovementSection';
+export * from './components/DirectGuideHistorySection';
 export * from './components/StockTransferSection';
 export * from './components/TransferHistorySection';
 export * from './components/MovementHistorySection';

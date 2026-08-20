@@ -6,7 +6,7 @@ export interface TransferStatusBadgeProps {
 }
 
 export const TransferStatusBadge: React.FC<TransferStatusBadgeProps> = ({ status }) => {
-  const norm = String(status || 'PENDING').toUpperCase();
+  const norm = String(status || '').toUpperCase();
 
   if (norm === 'RECEIVED') {
     return (
@@ -32,9 +32,17 @@ export const TransferStatusBadge: React.FC<TransferStatusBadgeProps> = ({ status
     );
   }
 
+  if (norm === 'DRAFT' || norm === 'PENDING') {
+    return (
+      <span className="rounded-full bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:text-amber-300">
+        Rascunho
+      </span>
+    );
+  }
+
   return (
-    <span className="rounded-full bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:text-amber-300">
-      Rascunho
+    <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[11px] font-bold text-slate-700 dark:text-slate-300">
+      {status || 'Desconhecido'}
     </span>
   );
 };
