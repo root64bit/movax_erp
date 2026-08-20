@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import {
@@ -16,7 +16,20 @@ import { DirectGuideHistorySection } from '../../src/features/stock-transfers/co
 import { CancelGuideModal } from '../../src/features/stock-transfers/components/CancelGuideModal';
 import { useDirectStockMovement } from '../../src/features/stock-transfers/hooks/useDirectStockMovement';
 import { useStockTransfersManagement } from '../../src/features/stock-transfers/hooks/useStockTransfersManagement';
-import type { StockMovement, StockGuideItem, DocumentRecord, Article, Supplier, AccessScope } from '../../src/shared/types/domain.types';
+import type { StockMovement, StockGuideItem, DocumentRecord, Article, Supplier, AccessScope, StockTransfer } from '../../src/shared/types/domain.types';
+
+// Helper to traverse a React element tree and find elements matching a predicate
+function findElements(element: any, predicate: (el: any) => boolean, acc: any[] = []): any[] {
+  if (!element || typeof element !== 'object') return acc;
+  if (predicate(element)) acc.push(element);
+  if (element.props && element.props.children) {
+    const children = Array.isArray(element.props.children) ? element.props.children : [element.props.children];
+    for (const child of children) {
+      findElements(child, predicate, acc);
+    }
+  }
+  return acc;
+}
 
 describe('Stock Transfers Domain & State Machine Contract', () => {
   describe('Canonical State Machine Transitions & Normalization', () => {
@@ -74,7 +87,7 @@ describe('Stock Transfers Domain & State Machine Contract', () => {
     });
   });
 
-  describe('DirectGuideHistorySection Component Interaction Contracts', () => {
+  describe('DirectGuideHistorySection Component Real Interaction Contracts', () => {
     const dummyDoc: DocumentRecord = {
       id: 'doc-123',
       displayNumber: 'GE-2026/001',
@@ -95,59 +108,102 @@ describe('Stock Transfers Domain & State Machine Contract', () => {
       status: 'CANCELLED',
     };
 
-    it('renders Edit, Cancel and Print buttons for confirmed guide', () => {
-      const html = renderToString(
-        React.createElement(DirectGuideHistorySection, {
-          stockGuideDocuments: [dummyDoc],
-          lastSavedGuide: null,
-          canCancelGuide: true,
-          onOpenDocument: vi.fn(),
-          onEditGuide: vi.fn(),
-          onCancelGuide: vi.fn(),
-        })
-      );
+    it('executes real onEditGuide callback when Editar button is clicked', () => {
+      const onEditGuideMock = vi.fn();
+      const tree = DirectGuideHistorySection({
+        stockGuideDocuments: [dummyDoc],
+        lastSavedGuide: null,
+        canCancelGuide: true,
+        onOpenDocument: vi.fn(),
+        onEditGuide: onEditGuideMock,
+        onCancelGuide: vi.fn(),
+      });
 
-      expect(html).toContain('GE-2026/001');
-      expect(html).toContain('Editar');
-      expect(html).toContain('Anular');
-      expect(html).toContain('Imprimir');
-      expect(html).toContain('Confirmada');
+      const buttons = findElements(tree, (el) => el.type === 'button' && (el.props?.title === 'Editar guia' || el.props?.children === 'Editar'));
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0].props.disabled).toBe(false);
+
+      // Execute real click event handler on the element
+      buttons[0].props.onClick({ preventDefault: vi.fn(), stopPropagation: vi.fn() });
+
+      expect(onEditGuideMock).toHaveBeenCalledTimes(1);
+      expect(onEditGuideMock).toHaveBeenCalledWith(dummyDoc);
     });
 
-    it('hides Anular button when canCancelGuide is false', () => {
-      const html = renderToString(
-        React.createElement(DirectGuideHistorySection, {
-          stockGuideDocuments: [dummyDoc],
-          lastSavedGuide: null,
-          canCancelGuide: false,
-          onOpenDocument: vi.fn(),
-          onEditGuide: vi.fn(),
-          onCancelGuide: vi.fn(),
-        })
-      );
+    it('executes real onCancelGuide callback when Anular button is clicked', () => {
+      const onCancelGuideMock = vi.fn();
+      const tree = DirectGuideHistorySection({
+        stockGuideDocuments: [dummyDoc],
+        lastSavedGuide: null,
+        canCancelGuide: true,
+        onOpenDocument: vi.fn(),
+        onEditGuide: vi.fn(),
+        onCancelGuide: onCancelGuideMock,
+      });
 
-      expect(html).toContain('Editar');
-      expect(html).not.toContain('title="Anular guia e reverter stock"');
+      const buttons = findElements(tree, (el) => el.type === 'button' && (el.props?.title === 'Anular guia e reverter stock' || el.props?.children === 'Anular'));
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0].props.disabled).toBe(false);
+
+      buttons[0].props.onClick({ preventDefault: vi.fn(), stopPropagation: vi.fn() });
+
+      expect(onCancelGuideMock).toHaveBeenCalledTimes(1);
+      expect(onCancelGuideMock).toHaveBeenCalledWith(dummyDoc);
     });
 
-    it('marks cancelled guides as Anulada and disables Edit and Cancel', () => {
-      const html = renderToString(
-        React.createElement(DirectGuideHistorySection, {
-          stockGuideDocuments: [dummyCancelledDoc],
-          lastSavedGuide: null,
-          canCancelGuide: true,
-          onOpenDocument: vi.fn(),
-          onEditGuide: vi.fn(),
-          onCancelGuide: vi.fn(),
-        })
-      );
+    it('executes real onOpenDocument callback when Imprimir button is clicked', () => {
+      const onOpenDocumentMock = vi.fn();
+      const tree = DirectGuideHistorySection({
+        stockGuideDocuments: [dummyDoc],
+        lastSavedGuide: null,
+        canCancelGuide: true,
+        onOpenDocument: onOpenDocumentMock,
+        onEditGuide: vi.fn(),
+        onCancelGuide: vi.fn(),
+      });
 
-      expect(html).toContain('Anulada');
-      expect(html).toContain('disabled=""');
+      const buttons = findElements(tree, (el) => el.type === 'button' && (el.props?.title === 'Imprimir guia' || el.props?.children === 'Imprimir'));
+      expect(buttons).toHaveLength(1);
+
+      buttons[0].props.onClick({ preventDefault: vi.fn(), stopPropagation: vi.fn() });
+
+      expect(onOpenDocumentMock).toHaveBeenCalledTimes(1);
+      expect(onOpenDocumentMock).toHaveBeenCalledWith(dummyDoc);
+    });
+
+    it('does not render Anular button when canCancelGuide is false', () => {
+      const tree = DirectGuideHistorySection({
+        stockGuideDocuments: [dummyDoc],
+        lastSavedGuide: null,
+        canCancelGuide: false,
+        onOpenDocument: vi.fn(),
+        onEditGuide: vi.fn(),
+        onCancelGuide: vi.fn(),
+      });
+
+      const cancelButtons = findElements(tree, (el) => el.type === 'button' && (el.props?.title === 'Anular guia e reverter stock' || el.props?.children === 'Anular'));
+      expect(cancelButtons).toHaveLength(0);
+    });
+
+    it('disables Edit and Cancel buttons for cancelled guides', () => {
+      const tree = DirectGuideHistorySection({
+        stockGuideDocuments: [dummyCancelledDoc],
+        lastSavedGuide: null,
+        canCancelGuide: true,
+        onOpenDocument: vi.fn(),
+        onEditGuide: vi.fn(),
+        onCancelGuide: vi.fn(),
+      });
+
+      const editButtons = findElements(tree, (el) => el.type === 'button' && (el.props?.title === 'Editar guia' || el.props?.children === 'Editar'));
+      const cancelButtons = findElements(tree, (el) => el.type === 'button' && (el.props?.title === 'Anular guia e reverter stock' || el.props?.children === 'Anular'));
+
+      expect(editButtons[0].props.disabled).toBe(true);
+      expect(cancelButtons[0].props.disabled).toBe(true);
     });
   });
 
-  describe('CancelGuideModal Component Interaction Contracts', () => {
+  describe('CancelGuideModal Component Real Interaction Contracts', () => {
     const dummyDoc: DocumentRecord = {
       id: 'doc-123',
       displayNumber: 'GE-2026/001',
@@ -156,56 +212,62 @@ describe('Stock Transfers Domain & State Machine Contract', () => {
       status: 'CONFIRMED',
     };
 
-    it('disables confirmation button when cancellation reason is empty', () => {
-      const html = renderToString(
-        React.createElement(CancelGuideModal, {
-          cancellingGuide: dummyDoc,
-          cancelReason: '',
-          onCancelReasonChange: vi.fn(),
-          isCancelling: false,
-          onClose: vi.fn(),
-          onConfirmCancel: vi.fn(),
-        })
-      );
+    it('disables confirmation button when reason is empty', () => {
+      const onConfirmCancelMock = vi.fn();
+      const tree = CancelGuideModal({
+        cancellingGuide: dummyDoc,
+        cancelReason: '',
+        onCancelReasonChange: vi.fn(),
+        isCancelling: false,
+        onClose: vi.fn(),
+        onConfirmCancel: onConfirmCancelMock,
+      });
 
-      expect(html).toContain('Confirmar Anulação');
-      expect(html).toContain('disabled=""');
+      const confirmButtons = findElements(tree, (el) => el.type === 'button' && el.props?.children === 'Confirmar Anulação');
+      expect(confirmButtons[0].props.disabled).toBe(true);
     });
 
-    it('enables confirmation button when valid reason is provided', () => {
-      const html = renderToString(
-        React.createElement(CancelGuideModal, {
-          cancellingGuide: dummyDoc,
-          cancelReason: 'Artigos devolvidos ao fornecedor',
-          onCancelReasonChange: vi.fn(),
-          isCancelling: false,
-          onClose: vi.fn(),
-          onConfirmCancel: vi.fn(),
-        })
-      );
+    it('updates reason on textarea input and calls onConfirmCancel on click', () => {
+      const onCancelReasonChangeMock = vi.fn();
+      const onConfirmCancelMock = vi.fn();
+      const tree = CancelGuideModal({
+        cancellingGuide: dummyDoc,
+        cancelReason: 'Erro de lançamento em armazém',
+        onCancelReasonChange: onCancelReasonChangeMock,
+        isCancelling: false,
+        onClose: vi.fn(),
+        onConfirmCancel: onConfirmCancelMock,
+      });
 
-      expect(html).toContain('Confirmar Anulação');
-      // When enabled and isCancelling is false, button is not disabled
-      expect(html).toContain('Artigos devolvidos ao fornecedor');
+      const textareas = findElements(tree, (el) => el.type === 'textarea');
+      expect(textareas).toHaveLength(1);
+      textareas[0].props.onChange({ target: { value: 'Nova razão' } });
+      expect(onCancelReasonChangeMock).toHaveBeenCalledWith('Nova razão');
+
+      const confirmButtons = findElements(tree, (el) => el.type === 'button' && el.props?.children === 'Confirmar Anulação');
+      expect(confirmButtons[0].props.disabled).toBe(false);
+
+      confirmButtons[0].props.onClick({ preventDefault: vi.fn() });
+      expect(onConfirmCancelMock).toHaveBeenCalledTimes(1);
     });
 
-    it('shows loading state when isCancelling is true', () => {
-      const html = renderToString(
-        React.createElement(CancelGuideModal, {
-          cancellingGuide: dummyDoc,
-          cancelReason: 'Erro de lançamento',
-          onCancelReasonChange: vi.fn(),
-          isCancelling: true,
-          onClose: vi.fn(),
-          onConfirmCancel: vi.fn(),
-        })
-      );
+    it('disables confirm and shows loading state when isCancelling is true', () => {
+      const tree = CancelGuideModal({
+        cancellingGuide: dummyDoc,
+        cancelReason: 'Motivo válido',
+        onCancelReasonChange: vi.fn(),
+        isCancelling: true,
+        onClose: vi.fn(),
+        onConfirmCancel: vi.fn(),
+      });
 
-      expect(html).toContain('A anular...');
+      const loadingButtons = findElements(tree, (el) => el.type === 'button' && el.props?.children === 'A anular...');
+      expect(loadingButtons).toHaveLength(1);
+      expect(loadingButtons[0].props.disabled).toBe(true);
     });
   });
 
-  describe('Double-Submit & Write Safety Mutex (useDirectStockMovement)', () => {
+  describe('Direct Guide Write-Safety Mutex & Runtime Contracts (useDirectStockMovement)', () => {
     const dummyWarehouses: AccessScope[] = [{ id: 'wh-1', name: 'Armazém Central' }];
     const dummyArticles: Article[] = [
       { id: 'art-1', code: 'PNEU-01', description: 'Pneu Radial', unit: 'UN', stock: 20, minStock: 5, costPrice: 1000, sellPrice: 1500, taxRate: 16, category: 'Geral' },
@@ -252,6 +314,7 @@ describe('Stock Transfers Domain & State Machine Contract', () => {
 
       // Exactly 1 call reached onSaveGuide
       expect(onSaveGuideMock).toHaveBeenCalledTimes(1);
+      expect(hook.savingRef.current).toBe(false);
     });
 
     it('submits with existing document id when editingGuideId is set (UPDATE path)', async () => {
@@ -330,6 +393,200 @@ describe('Stock Transfers Domain & State Machine Contract', () => {
       await hook.submitGuide();
       expect(onSaveGuideMock).toHaveBeenCalledTimes(2);
       expect(hook.savingRef.current).toBe(false);
+    });
+  });
+
+  describe('Transfer Write-Safety & Mutex Runtime Contracts (useStockTransfersManagement)', () => {
+    const dummyWarehouses: AccessScope[] = [
+      { id: 'wh-1', name: 'Armazém Central' },
+      { id: 'wh-2', name: 'Armazém Secundário' },
+    ];
+    const dummyArticles: Article[] = [
+      { id: 'art-1', code: 'PNEU-01', description: 'Pneu Radial', unit: 'UN', stock: 20, minStock: 5, costPrice: 1000, sellPrice: 1500, taxRate: 16, category: 'Geral' },
+    ];
+
+    const dummyTransfer: StockTransfer = {
+      id: 'trf-123',
+      transferNumber: 'TRF-2026/001',
+      transferDate: '2026-08-20',
+      fromWarehouseId: 'wh-1',
+      fromWarehouseName: 'Armazém Central',
+      toWarehouseId: 'wh-2',
+      toWarehouseName: 'Armazém Secundário',
+      status: 'PENDING',
+      lines: [{ productId: 'art-1', productCode: 'PNEU-01', productName: 'Pneu Radial', quantity: 5, unitCost: 1000 }],
+    };
+
+    beforeEach(() => {
+      if (typeof window === 'undefined') {
+        (globalThis as any).window = {
+          confirm: vi.fn(() => true),
+          prompt: vi.fn(() => 'Cancelada pelo operador'),
+          scrollTo: vi.fn(),
+        };
+      }
+      vi.spyOn(StockTransfersService, 'fetchTransfers').mockResolvedValue([]);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('prevents duplicate sendTransfer via transferWriteLockRef mutex', async () => {
+      let resolveCreate!: (val: any) => void;
+      const pendingCreate = new Promise<any>((res) => { resolveCreate = res; });
+      const createSpy = vi.spyOn(StockTransfersService, 'createTransfer').mockImplementation(() => pendingCreate);
+      const dispatchSpy = vi.spyOn(StockTransfersService, 'dispatchTransfer').mockResolvedValue({
+        id: 'trf-created-1',
+        transferNumber: 'TRF-001',
+        status: 'IN_TRANSIT',
+      });
+
+      let hook!: ReturnType<typeof useStockTransfersManagement>;
+      const Harness: React.FC = () => {
+        hook = useStockTransfersManagement({
+          articles: dummyArticles,
+          warehouses: dummyWarehouses,
+          initialTransferDraft: {
+            fromWarehouseId: 'wh-1',
+            toWarehouseId: 'wh-2',
+            items: [{ articleId: 'art-1', articleCode: 'PNEU-01', articleDescription: 'Pneu', quantity: 5, currentStock: 10 }],
+          },
+        });
+        return null;
+      };
+
+      renderToString(React.createElement(Harness));
+
+      // Trigger two concurrent submissions
+      const p1 = hook.sendTransfer();
+      const p2 = hook.sendTransfer();
+
+      resolveCreate({ id: 'trf-created-1', transferNumber: 'TRF-001', status: 'PENDING' });
+      await Promise.all([p1, p2]);
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(hook.transferWriteLockRef.current).toBe(false);
+    });
+
+    it('releases lock on transfer creation failure for retry', async () => {
+      const createSpy = vi.spyOn(StockTransfersService, 'createTransfer')
+        .mockRejectedValueOnce(new Error('Erro no servidor de transferências'))
+        .mockResolvedValueOnce({ id: 'trf-created-2', transferNumber: 'TRF-002', status: 'PENDING' });
+      const dispatchSpy = vi.spyOn(StockTransfersService, 'dispatchTransfer').mockResolvedValue({
+        id: 'trf-created-2',
+        transferNumber: 'TRF-002',
+        status: 'IN_TRANSIT',
+      });
+
+      let hook!: ReturnType<typeof useStockTransfersManagement>;
+      const Harness: React.FC = () => {
+        hook = useStockTransfersManagement({
+          articles: dummyArticles,
+          warehouses: dummyWarehouses,
+          initialTransferDraft: {
+            fromWarehouseId: 'wh-1',
+            toWarehouseId: 'wh-2',
+            items: [{ articleId: 'art-1', articleCode: 'PNEU-01', articleDescription: 'Pneu', quantity: 5, currentStock: 10 }],
+          },
+        });
+        return null;
+      };
+
+      renderToString(React.createElement(Harness));
+
+      // First attempt fails
+      await hook.sendTransfer();
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(hook.transferWriteLockRef.current).toBe(false);
+
+      // Second attempt succeeds
+      await hook.sendTransfer();
+      expect(createSpy).toHaveBeenCalledTimes(2);
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(hook.transferWriteLockRef.current).toBe(false);
+    });
+
+    it('prevents concurrent dispatchExistingTransfer calls via transferWriteLockRef mutex', async () => {
+      let resolveDispatch!: (val: any) => void;
+      const pendingDispatch = new Promise<any>((res) => { resolveDispatch = res; });
+      const dispatchSpy = vi.spyOn(StockTransfersService, 'dispatchTransfer').mockImplementation(() => pendingDispatch);
+      window.confirm = vi.fn().mockReturnValue(true);
+
+      let hook!: ReturnType<typeof useStockTransfersManagement>;
+      const Harness: React.FC = () => {
+        hook = useStockTransfersManagement({
+          articles: dummyArticles,
+          warehouses: dummyWarehouses,
+        });
+        return null;
+      };
+
+      renderToString(React.createElement(Harness));
+
+      const p1 = hook.dispatchExistingTransfer(dummyTransfer);
+      const p2 = hook.dispatchExistingTransfer(dummyTransfer);
+
+      resolveDispatch({ id: 'trf-123', transferNumber: 'TRF-2026/001', status: 'IN_TRANSIT' });
+      await Promise.all([p1, p2]);
+
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(hook.transferWriteLockRef.current).toBe(false);
+    });
+
+    it('prevents concurrent receiveTransfer calls via transferWriteLockRef mutex', async () => {
+      let resolveReceive!: (val: any) => void;
+      const pendingReceive = new Promise<any>((res) => { resolveReceive = res; });
+      const receiveSpy = vi.spyOn(StockTransfersService, 'receiveTransfer').mockImplementation(() => pendingReceive);
+      window.confirm = vi.fn().mockReturnValue(true);
+
+      let hook!: ReturnType<typeof useStockTransfersManagement>;
+      const Harness: React.FC = () => {
+        hook = useStockTransfersManagement({
+          articles: dummyArticles,
+          warehouses: dummyWarehouses,
+        });
+        return null;
+      };
+
+      renderToString(React.createElement(Harness));
+
+      const p1 = hook.receiveTransfer({ ...dummyTransfer, status: 'IN_TRANSIT' });
+      const p2 = hook.receiveTransfer({ ...dummyTransfer, status: 'IN_TRANSIT' });
+
+      resolveReceive({ id: 'trf-123', transferNumber: 'TRF-2026/001', status: 'RECEIVED' });
+      await Promise.all([p1, p2]);
+
+      expect(receiveSpy).toHaveBeenCalledTimes(1);
+      expect(hook.transferWriteLockRef.current).toBe(false);
+    });
+
+    it('prevents concurrent voidTransfer calls via transferWriteLockRef mutex', async () => {
+      let resolveCancel!: (val: any) => void;
+      const pendingCancel = new Promise<any>((res) => { resolveCancel = res; });
+      const cancelSpy = vi.spyOn(StockTransfersService, 'cancelTransfer').mockImplementation(() => pendingCancel);
+      window.prompt = vi.fn().mockReturnValue('Cancelada pelo operador');
+
+      let hook!: ReturnType<typeof useStockTransfersManagement>;
+      const Harness: React.FC = () => {
+        hook = useStockTransfersManagement({
+          articles: dummyArticles,
+          warehouses: dummyWarehouses,
+        });
+        return null;
+      };
+
+      renderToString(React.createElement(Harness));
+
+      const p1 = hook.voidTransfer(dummyTransfer);
+      const p2 = hook.voidTransfer(dummyTransfer);
+
+      resolveCancel({ id: 'trf-123', transferNumber: 'TRF-2026/001', status: 'CANCELLED' });
+      await Promise.all([p1, p2]);
+
+      expect(cancelSpy).toHaveBeenCalledTimes(1);
+      expect(hook.transferWriteLockRef.current).toBe(false);
     });
   });
 

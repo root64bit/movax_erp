@@ -7,6 +7,12 @@ export interface UseStockTransfersManagementProps {
   articles: Article[];
   warehouses: AccessScope[];
   documentDate?: string;
+  initialTransferDraft?: {
+    fromWarehouseId?: string;
+    toWarehouseId?: string;
+    items?: GuideLineItem[];
+    notes?: string;
+  };
   canTransfer?: boolean;
   canAllowNegative?: boolean;
   onSuccessCallback?: () => void;
@@ -16,18 +22,19 @@ export function useStockTransfersManagement({
   articles,
   warehouses,
   documentDate: initialDocumentDate,
+  initialTransferDraft,
   canTransfer = true,
   canAllowNegative = false,
   onSuccessCallback,
 }: UseStockTransfersManagementProps) {
-  const [transferFromWarehouseId, setTransferFromWarehouseId] = useState(() => warehouses[0]?.id || '');
-  const [transferToWarehouseId, setTransferToWarehouseId] = useState(() => warehouses[1]?.id || '');
+  const [transferFromWarehouseId, setTransferFromWarehouseId] = useState(() => initialTransferDraft?.fromWarehouseId || warehouses[0]?.id || '');
+  const [transferToWarehouseId, setTransferToWarehouseId] = useState(() => initialTransferDraft?.toWarehouseId || warehouses[1]?.id || '');
   const [transferArticleId, setTransferArticleId] = useState('');
   const [resolvedTransferArticle, setResolvedTransferArticle] = useState<Article | null>(null);
   const [transferQuantityStr, setTransferQuantityStr] = useState('');
   const [documentDate] = useState(() => initialDocumentDate || new Date().toISOString().slice(0, 10));
-  const [transferNotes, setTransferNotes] = useState('');
-  const [transferItems, setTransferItems] = useState<GuideLineItem[]>([]);
+  const [transferNotes, setTransferNotes] = useState(() => initialTransferDraft?.notes || '');
+  const [transferItems, setTransferItems] = useState<GuideLineItem[]>(() => initialTransferDraft?.items || []);
 
   const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [transferLoading, setTransferLoading] = useState(false);
