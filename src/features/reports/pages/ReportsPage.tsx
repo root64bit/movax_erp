@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { SaleInvoice, DocumentRecord, Article, Client } from '@/shared/types/domain.types';
 import { Pagination } from '@/components/Pagination';
 import { formatMZN } from '@/shared/utils/formatters';
+import { ReconciliationAuditTab } from '../components/ReconciliationAuditTab';
 
 export interface ReportsProps {
   permissions?: string[];
@@ -30,6 +31,9 @@ export const Reports: React.FC<ReportsProps> = ({
   canViewFinancial = true,
   canViewStock = true,
 }) => {
+  // Main Report Tab Selector
+  const [activeReportTab, setActiveReportTab] = useState<'sales_articles' | 'reconciliation'>('sales_articles');
+
   // Filters
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -267,20 +271,53 @@ export const Reports: React.FC<ReportsProps> = ({
 
   return (
     <div className="space-y-6 pb-12 font-sans">
-      {/* Top Header */}
-      <section className="bg-white dark:bg-[#1f2325] border border-[#c3c6d1] dark:border-[#43474f] p-4 rounded-lg shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="material-symbols-outlined text-2xl text-[#003366] dark:text-[#a7c8ff]">analytics</span>
-            <h2 className="text-lg font-black uppercase text-[#191c1d] dark:text-white">
-              Relatório de Vendas por Artigo
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500 mt-1 font-mono">
-            Vendas discriminadas por artigo com intervalo de códigos, preços de custo c/IVA e cálculo de PVR.
-          </p>
-        </div>
-      </section>
+      {/* Navigation Sub-Tabs in Reports */}
+      <div className="flex items-center space-x-2 border-b border-outline-variant dark:border-slate-800 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveReportTab('sales_articles')}
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition ${
+            activeReportTab === 'sales_articles'
+              ? 'bg-primary text-white shadow-xs'
+              : 'bg-surface dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-outline-variant dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">analytics</span>
+          <span>Vendas por Artigo & Margens</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveReportTab('reconciliation')}
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition ${
+            activeReportTab === 'reconciliation'
+              ? 'bg-purple-700 text-white shadow-xs'
+              : 'bg-surface dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-outline-variant dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base text-purple-400">shield</span>
+          <span>Reconciliação Financeira & Auditoria Forense</span>
+        </button>
+      </div>
+
+      {activeReportTab === 'reconciliation' ? (
+        <ReconciliationAuditTab sales={sales} />
+      ) : (
+        <>
+          {/* Top Header */}
+          <section className="bg-white dark:bg-[#1f2325] border border-[#c3c6d1] dark:border-[#43474f] p-4 rounded-lg shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="material-symbols-outlined text-2xl text-[#003366] dark:text-[#a7c8ff]">analytics</span>
+                <h2 className="text-lg font-black uppercase text-[#191c1d] dark:text-white">
+                  Relatório de Vendas por Artigo
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 font-mono">
+                Vendas discriminadas por artigo com intervalo de códigos, preços de custo c/IVA e cálculo de PVR.
+              </p>
+            </div>
+          </section>
 
       {/* Filter Suite Section */}
       <section className="bg-white dark:bg-[#1f2325] border border-[#c3c6d1] dark:border-[#43474f] p-4 rounded-lg shadow-sm space-y-4">
@@ -558,6 +595,8 @@ export const Reports: React.FC<ReportsProps> = ({
           </button>
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 };
