@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Article, SaleInvoice, Client, DashboardMetrics, DocumentRecord, StockMovement, Supplier } from '@/shared/types/domain.types';
 import { formatMZN } from '@/shared/utils/formatters';
 
@@ -133,6 +133,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span>Nova Venda / POS</span>
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => navigate('simulator')}
+                className="w-full p-3 rounded-xl border border-purple-300 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-900 dark:text-purple-200 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95"
+              >
+                <span className="material-symbols-outlined text-base text-purple-600 dark:text-purple-400">science</span>
+                <span>Simulador POS / Lab de Treino</span>
+              </button>
               {has('sales.create') && (
                 <button
                   type="button"

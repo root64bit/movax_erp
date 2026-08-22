@@ -293,6 +293,16 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
           />
         )}
 
+        {activeTab === 'simulator' && (
+          <div className="w-full h-[calc(100vh-140px)] rounded-2xl overflow-hidden border border-outline-variant dark:border-slate-800 shadow-sm bg-white dark:bg-[#121517]">
+            <iframe
+              src="/simulador_pos_ui.html"
+              title="Simulador POS & Laboratório Sombra"
+              className="w-full h-full border-0"
+            />
+          </div>
+        )}
+
         {activeTab === 'quotation' && hasAccess('quotation') && (
           <Quotation
             articles={articles}
