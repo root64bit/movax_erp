@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Movax ERP & POS · Simulador de Terminal POS</title>
+  <title>Movax ERP & POS · Simulador de Terminal POS & Relatório Sombra (Lab Didático)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
@@ -51,23 +51,26 @@
     .badge-training {
       animation: pulse-subtle 2s infinite ease-in-out;
     }
+    .badge-shadow-glow {
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+    }
   </style>
 </head>
 <body class="bg-[#f0f2f5] dark:bg-[#121517] text-[#191c1d] dark:text-gray-100 min-h-screen flex flex-col antialiased select-none">
 
   <!-- Top Global Bar -->
-  <header class="bg-brand-navy text-white px-4 py-2.5 shadow-md flex items-center justify-between">
+  <header class="bg-brand-navy text-white px-4 py-2.5 shadow-md flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center space-x-3">
-      <div class="bg-blue-600 text-white font-extrabold text-xs px-2.5 py-1 rounded tracking-wider shadow">MOVAX ERP/POS</div>
+      <div class="bg-blue-600 text-white font-extrabold text-xs px-2.5 py-1 rounded tracking-wider shadow">MOVAX LAB</div>
       <div class="h-4 w-px bg-slate-600"></div>
-      <span class="text-xs font-semibold tracking-wide text-slate-200">Terminal POS · Modo de Simulação & Treino</span>
-      <span class="bg-amber-500 text-slate-900 text-[10px] font-black uppercase px-2 py-0.5 rounded-full badge-training">Ambiente de Teste</span>
+      <span class="text-xs font-semibold tracking-wide text-slate-200">Terminal POS · Simulador de Contabilidade & Auditoria</span>
+      <span class="bg-amber-500 text-slate-900 text-[10px] font-black uppercase px-2 py-0.5 rounded-full badge-training">Ambiente de Teste Didático</span>
     </div>
 
     <div class="flex items-center space-x-4 text-xs">
       <div class="flex items-center space-x-1.5 text-slate-300">
         <i data-lucide="user" class="w-3.5 h-3.5"></i>
-        <span>Operador: <strong class="text-white">Admin (Treino)</strong></span>
+        <span>Operador: <strong class="text-white">Admin (Auditor Test)</strong></span>
       </div>
       <div class="h-4 w-px bg-slate-600"></div>
       <div class="flex items-center space-x-1.5 text-slate-300">
@@ -81,10 +84,83 @@
     </div>
   </header>
 
-  <!-- Main POS Workspace -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-3">
+  <!-- Navigation View Tabs -->
+  <nav class="bg-white dark:bg-brand-darkBg border-b border-brand-border dark:border-brand-darkBorder px-4 py-2 flex flex-wrap items-center justify-between gap-2 shadow-sm">
+    <div class="flex items-center space-x-2">
+      <button type="button" id="tab-btn-pos" onclick="switchViewTab('pos')"
+        class="px-3.5 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1.5 transition bg-brand-blue text-white shadow-sm">
+        <i data-lucide="monitor" class="w-4 h-4"></i>
+        <span>Terminal POS</span>
+      </button>
+      <button type="button" id="tab-btn-official" onclick="switchViewTab('official')"
+        class="px-3.5 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1.5 transition bg-slate-100 dark:bg-brand-darkCard text-slate-600 dark:text-slate-300 hover:bg-slate-200">
+        <i data-lucide="file-check" class="w-4 h-4 text-green-600"></i>
+        <span>Relatório Oficial (Tabela A - Fisco)</span>
+        <span id="badgeOficialCount" class="bg-green-100 text-green-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-1">0</span>
+      </button>
+      <button type="button" id="tab-btn-shadow" onclick="switchViewTab('shadow')"
+        class="px-3.5 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1.5 transition bg-slate-100 dark:bg-brand-darkCard text-slate-600 dark:text-slate-300 hover:bg-slate-200">
+        <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>
+        <span>Relatório Sombra Consolidado (Tabela A + B)</span>
+        <span id="badgeShadowCount" class="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-1">0</span>
+      </button>
+      <button type="button" id="tab-btn-forensics" onclick="switchViewTab('forensics')"
+        class="px-3.5 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1.5 transition bg-slate-100 dark:bg-brand-darkCard text-slate-600 dark:text-slate-300 hover:bg-slate-200">
+        <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600"></i>
+        <span>Raio-X de Auditoria Forense</span>
+      </button>
+    </div>
 
-    <!-- 1. POS Header & Document Type Selector -->
+    <div class="flex items-center space-x-2 text-xs">
+      <button onclick="carregarCenarioExemplo()" class="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded font-bold hover:bg-blue-100 transition flex items-center space-x-1">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>Carregar Dados de Demonstração</span>
+      </button>
+      <button onclick="limparBaseDadosSimulada()" class="px-2.5 py-1.5 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded font-bold hover:bg-red-100 transition flex items-center space-x-1" title="Apagar transações em memória">
+        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        <span>Limpar Bases</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ===================================================================== -->
+  <!-- 1. TAB VIEW: TERMINAL POS -->
+  <!-- ===================================================================== -->
+  <main id="view-pos" class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-3">
+
+    <!-- Bifurcation / Simulation Control Banner -->
+    <section class="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-3.5 rounded-lg shadow-md border border-slate-700 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 rounded-lg bg-slate-800 border border-slate-600 text-blue-400">
+          <i data-lucide="git-fork" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-300">Simulador de Bifurcação de Registo (Para Estudo de Auditoria)</div>
+          <div class="text-[11px] text-slate-400">Controle para qual base de dados a transação em curso será encaminhada no momento da gravação.</div>
+        </div>
+      </div>
+
+      <!-- Channel Toggle -->
+      <div class="flex items-center bg-slate-950/80 p-1 rounded-lg border border-slate-700 space-x-1">
+        <button type="button" id="btn-channel-official" onclick="setRecordingChannel('OFFICIAL')"
+          class="px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 bg-green-600 text-white shadow">
+          <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+          <span>Circuito Oficial (Tabela A)</span>
+        </button>
+        <button type="button" id="btn-channel-shadow" onclick="setRecordingChannel('SHADOW')"
+          class="px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 text-purple-300 hover:text-white hover:bg-purple-900/40">
+          <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
+          <span>Circuito Paralelo / Sombra (Tabela B)</span>
+        </button>
+      </div>
+
+      <div class="text-[11px] text-amber-300 font-mono bg-amber-950/50 border border-amber-800/60 px-2 py-1 rounded flex items-center space-x-1">
+        <i data-lucide="keyboard" class="w-3.5 h-3.5"></i>
+        <span>Atalho: <strong>Alt + S</strong> para alternar canal</span>
+      </div>
+    </section>
+
+    <!-- POS Header & Document Type Selector -->
     <section class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-3 rounded-lg shadow-sm flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center space-x-2">
         <button type="button" id="btn-doc-invoice" onclick="selectDocType('CUSTOMER_INVOICE')"
@@ -104,8 +180,8 @@
       <!-- State and Number Indicators -->
       <div class="flex items-center space-x-3 text-xs">
         <div class="flex items-center space-x-1.5 bg-brand-lightBg dark:bg-brand-darkCard px-3 py-1.5 rounded-md border border-brand-border dark:border-brand-darkBorder font-mono">
-          <span class="text-slate-500 font-bold uppercase">Nº Doc:</span>
-          <span id="docNumberDisplay" class="font-black text-brand-blue dark:text-blue-400">A atribuir ao confirmar</span>
+          <span class="text-slate-500 font-bold uppercase">Nº Doc Previsto:</span>
+          <span id="docNumberDisplay" class="font-black text-brand-blue dark:text-blue-400">FT-OFICIAL/2026-0001</span>
         </div>
         <div id="statusBadge" class="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]">
           ● PREPARAÇÃO
@@ -117,7 +193,7 @@
       </div>
     </section>
 
-    <!-- 2. Customer & Transaction Details -->
+    <!-- Customer & Transaction Details -->
     <section class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-3 rounded-lg shadow-sm space-y-3">
       <div class="grid grid-cols-12 gap-3 text-xs">
         
@@ -172,7 +248,7 @@
         <!-- Payment Reference -->
         <div class="col-span-12 sm:col-span-3">
           <label class="block font-bold uppercase text-slate-600 dark:text-slate-300 mb-1">Ref. Transacção / Talão:</label>
-          <input type="text" id="paymentRef" placeholder="Ex: TXN89231 / Aut. POS"
+          <input type="text" id="paymentRef" placeholder="Opcional (Numerário)"
             class="w-full bg-white dark:bg-brand-darkCard border border-brand-border dark:border-brand-darkBorder rounded px-2 py-1.5 font-mono text-[#191c1d] dark:text-white focus:outline-blue-600" />
         </div>
 
@@ -186,7 +262,7 @@
       </div>
     </section>
 
-    <!-- 3. Cart & Draft Article Entry -->
+    <!-- Cart & Draft Article Entry -->
     <section class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder rounded-lg overflow-hidden shadow-sm">
       <div class="bg-brand-navy text-white px-4 py-2 text-xs font-bold uppercase flex justify-between items-center">
         <span class="flex items-center space-x-2">
@@ -274,7 +350,7 @@
       </div>
     </section>
 
-    <!-- 4. Totals & Tax Breakdown -->
+    <!-- Totals & Tax Breakdown -->
     <section class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-3 rounded-lg shadow-sm space-y-3">
       <div class="grid grid-cols-12 gap-3">
         
@@ -332,12 +408,13 @@
       </div>
     </section>
 
-    <!-- 5. Action Footer & Shortcuts Bar -->
+    <!-- Action Footer & Shortcuts Bar -->
     <footer class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-3 rounded-lg shadow-md flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center space-x-2 text-xs font-bold text-slate-500">
         <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F2: Gravar</span>
         <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F5: Novo</span>
         <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F9: Imprimir</span>
+        <span class="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 px-2 py-1 rounded border border-purple-300 dark:border-purple-800">Alt+S: Alternar Canal</span>
       </div>
 
       <div class="flex items-center space-x-2">
@@ -360,7 +437,257 @@
 
   </main>
 
-  <!-- Modal: Test Receipt / Invoice Print Preview -->
+  <!-- ===================================================================== -->
+  <!-- 2. TAB VIEW: RELATÓRIO OFICIAL (TABELA A - FISCO) -->
+  <!-- ===================================================================== -->
+  <main id="view-official" class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-4 hidden">
+    <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="bg-green-600 text-white text-xs font-black px-2 py-0.5 rounded">TABELA A</span>
+          <h2 class="text-base font-extrabold text-[#191c1d] dark:text-white">Relatório Oficial de Vendas (Declaração Fiscal)</h2>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">Este é o livro de faturação oficial visível à Autoridade Tributária / Fisco e a qualquer auditor externo padrão.</p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="exportTableToCSV('official')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-xs font-bold rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-200 transition flex items-center space-x-1">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Exportar SAF-T / CSV</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Official Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total de Vendas Declaradas</div>
+        <div class="text-2xl font-black text-green-700 dark:text-green-400 font-mono mt-1" id="kpi-official-gross">0,00 MT</div>
+        <div class="text-[11px] text-slate-400 mt-1" id="kpi-official-count">0 documento(s) emitido(s)</div>
+      </div>
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">IVA Apurado a Entregar ao Estado</div>
+        <div class="text-2xl font-black text-blue-700 dark:text-blue-400 font-mono mt-1" id="kpi-official-tax">0,00 MT</div>
+        <div class="text-[11px] text-slate-400 mt-1">Taxa média efetiva: 16%</div>
+      </div>
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estado da Base Oficial</div>
+        <div class="text-sm font-bold text-slate-800 dark:text-slate-200 mt-2 flex items-center space-x-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+          <span>Sequência Contínua / Certificada</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1">Sem interrupções aparentes no hash sequencial</div>
+      </div>
+    </div>
+
+    <!-- Official Records Table -->
+    <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder rounded-lg shadow-sm overflow-hidden">
+      <div class="p-3 bg-slate-50 dark:bg-brand-darkCard border-b border-brand-border dark:border-brand-darkBorder text-xs font-bold text-slate-700 dark:text-slate-200 uppercase">
+        Registo de Documentos na Base Oficial (Tabela A)
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse font-mono">
+          <thead class="bg-[#f0f2f5] dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase font-bold border-b border-brand-border dark:border-brand-darkBorder text-[11px]">
+            <tr>
+              <th class="p-2.5">Nº Documento</th>
+              <th class="p-2.5">Data / Hora</th>
+              <th class="p-2.5">Cliente</th>
+              <th class="p-2.5">NUIT</th>
+              <th class="p-2.5">Pagamento</th>
+              <th class="p-2.5 text-right">Ilíquido</th>
+              <th class="p-2.5 text-right">IVA (16%)</th>
+              <th class="p-2.5 text-right">Total c/ IVA</th>
+            </tr>
+          </thead>
+          <tbody id="tableOfficialBody" class="divide-y divide-brand-border dark:divide-brand-darkBorder">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+      <div id="emptyOfficialState" class="p-8 text-center text-slate-400">
+        Nenhuma transação registada na contabilidade oficial até ao momento.
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- 3. TAB VIEW: RELATÓRIO SOMBRA CONSOLIDADO (TABELA A + B) -->
+  <!-- ===================================================================== -->
+  <main id="view-shadow" class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-4 hidden">
+    <div class="bg-gradient-to-r from-purple-950 to-slate-900 border border-purple-800/60 p-4 rounded-lg text-white shadow-md flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="bg-purple-600 text-white text-xs font-black px-2.5 py-0.5 rounded shadow badge-shadow-glow">SHADOW CONSOLIDATION</span>
+          <h2 class="text-base font-extrabold text-white">Relatório Sombra Consolidado (Tabela A + Tabela B)</h2>
+        </div>
+        <p class="text-xs text-purple-200 mt-1">Visão real de gestão do proprietário que agrega a contabilidade oficial com a contabilidade oculta / paralela.</p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-[11px] font-mono bg-purple-900/80 border border-purple-600 px-2.5 py-1 rounded text-purple-200">
+          🔓 Acesso Restrito ao Gerente / Sócio
+        </span>
+      </div>
+    </div>
+
+    <!-- Shadow KPIs (Discrepancy Matrix) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-3.5 rounded-lg shadow-sm">
+        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Faturação Declarada (A)</div>
+        <div class="text-lg font-black text-green-700 dark:text-green-400 font-mono mt-1" id="kpi-shadow-official">0,00 MT</div>
+        <div class="text-[10px] text-slate-400 mt-1" id="kpi-shadow-official-txs">0 docs oficiais</div>
+      </div>
+
+      <div class="bg-white dark:bg-brand-darkBg border border-purple-300 dark:border-purple-800 p-3.5 rounded-lg shadow-sm bg-purple-50/30 dark:bg-purple-950/20">
+        <div class="text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Faturação Ocultada (B)</div>
+        <div class="text-lg font-black text-purple-600 dark:text-purple-400 font-mono mt-1" id="kpi-shadow-hidden">0,00 MT</div>
+        <div class="text-[10px] text-purple-500 mt-1" id="kpi-shadow-hidden-txs">0 docs ocultados</div>
+      </div>
+
+      <div class="bg-white dark:bg-brand-darkBg border border-blue-300 dark:border-blue-800 p-3.5 rounded-lg shadow-sm">
+        <div class="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Faturação Real Total (A+B)</div>
+        <div class="text-xl font-black text-blue-700 dark:text-blue-400 font-mono mt-1" id="kpi-shadow-total">0,00 MT</div>
+        <div class="text-[10px] text-slate-400 mt-1" id="kpi-shadow-total-txs">0 transações totais</div>
+      </div>
+
+      <div class="bg-white dark:bg-brand-darkBg border border-red-300 dark:border-red-800 p-3.5 rounded-lg shadow-sm bg-red-50/30 dark:bg-red-950/20">
+        <div class="text-[10px] font-bold text-red-700 dark:text-red-300 uppercase tracking-wider">Taxa Omissão Fiscal</div>
+        <div class="text-xl font-black text-red-600 dark:text-red-400 font-mono mt-1" id="kpi-shadow-evasion-rate">0.00%</div>
+        <div class="text-[10px] text-red-500 mt-1">Percentagem não declarada</div>
+      </div>
+
+      <div class="bg-white dark:bg-brand-darkBg border border-amber-300 dark:border-amber-800 p-3.5 rounded-lg shadow-sm">
+        <div class="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">IVA Omitido / Retido</div>
+        <div class="text-lg font-black text-amber-600 dark:text-amber-400 font-mono mt-1" id="kpi-shadow-tax-evaded">0,00 MT</div>
+        <div class="text-[10px] text-slate-400 mt-1">Imposto não liquidado</div>
+      </div>
+
+    </div>
+
+    <!-- Filter Buttons & Combined Records -->
+    <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder rounded-lg shadow-sm overflow-hidden">
+      <div class="p-3 bg-slate-50 dark:bg-brand-darkCard border-b border-brand-border dark:border-brand-darkBorder flex flex-wrap items-center justify-between gap-2">
+        <div class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase flex items-center space-x-2">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>
+          <span>Consolidação de Transações (Livro Sombra Unificado)</span>
+        </div>
+        <div class="flex items-center space-x-1.5 text-xs">
+          <button onclick="filterShadowTable('ALL')" id="btn-filter-all" class="px-2.5 py-1 rounded bg-brand-blue text-white font-bold">Todas</button>
+          <button onclick="filterShadowTable('OFFICIAL')" id="btn-filter-official" class="px-2.5 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-300">Apenas Oficial (A)</button>
+          <button onclick="filterShadowTable('SHADOW')" id="btn-filter-shadow" class="px-2.5 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-300">Apenas Ocultadas (B)</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse font-mono">
+          <thead class="bg-[#f0f2f5] dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase font-bold border-b border-brand-border dark:border-brand-darkBorder text-[11px]">
+            <tr>
+              <th class="p-2.5">Origem / Canal</th>
+              <th class="p-2.5">Nº Documento</th>
+              <th class="p-2.5">Data / Hora</th>
+              <th class="p-2.5">Cliente</th>
+              <th class="p-2.5">Itens / Artigo</th>
+              <th class="p-2.5">Pagamento</th>
+              <th class="p-2.5 text-right">IVA</th>
+              <th class="p-2.5 text-right">Total Real</th>
+            </tr>
+          </thead>
+          <tbody id="tableShadowBody" class="divide-y divide-brand-border dark:divide-brand-darkBorder">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="emptyShadowState" class="p-8 text-center text-slate-400">
+        Nenhuma transação registada em nenhum dos canais.
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- 4. TAB VIEW: RAIO-X DE AUDITORIA FORENSE -->
+  <!-- ===================================================================== -->
+  <main id="view-forensics" class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-4 hidden">
+    
+    <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm">
+      <div class="flex items-center space-x-2">
+        <span class="bg-amber-600 text-white text-xs font-black px-2 py-0.5 rounded">DIDÁCTICO & AUDITORIA</span>
+        <h2 class="text-base font-extrabold text-[#191c1d] dark:text-white">Raio-X: Como Auditores Forenses Detetam Esquemas de Contabilidade Dupla</h2>
+      </div>
+      <p class="text-xs text-slate-500 mt-1">Análise teórica dos 4 principais vetores de vulnerabilidade que revelam a existência de bifurcação de dados num ERP/POS.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+      <!-- Vector 1 -->
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm space-y-2">
+        <div class="flex items-center space-x-2 text-red-600 dark:text-red-400 font-bold text-xs">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>1. Descontinuidade Temporal e Saltos de Numeração</span>
+        </div>
+        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          Mesmo que a Tabela B tenha uma numeração separada, quando uma venda de caixa 2 ocorre entre duas vendas oficiais, o intervalo de tempo entre faturas oficiais fica artificialmente longo (ex: uma loja com 50 clientes na fila emite uma fatura às 12:00 e a seguinte só às 13:30).
+        </p>
+      </div>
+
+      <!-- Vector 2 -->
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm space-y-2">
+        <div class="flex items-center space-x-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
+          <i data-lucide="package" class="w-4 h-4"></i>
+          <span>2. Discrepâncias de Stock Físico (Stock Fantasma)</span>
+        </div>
+        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          Se o produto físico saiu da prateleira na venda oculta mas não foi abatido no stock oficial, a contagem física não baterá com o ficheiro SAF-T. Se o software abater o stock sem fatura correspondente, cria uma quebra inexplicada que é facilmente identificada em auditoria de armazém.
+        </p>
+      </div>
+
+      <!-- Vector 3 -->
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm space-y-2">
+        <div class="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-bold text-xs">
+          <i data-lucide="credit-card" class="w-4 h-4"></i>
+          <span>3. Rastreio de Fluxos Financeiros (Bancos vs Caixa)</span>
+        </div>
+        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          Transações com Cartão (POS/TPA), M-Pesa e Transferências Bancárias deixam registo na instituição financeira. Se um operador desviar uma transação com TPA para a Tabela B, o extrato bancário terá entradas que a contabilidade oficial omitiu, quebrando o esquema de imediato.
+        </p>
+      </div>
+
+      <!-- Vector 4 -->
+      <div class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-4 rounded-lg shadow-sm space-y-2">
+        <div class="flex items-center space-x-2 text-purple-600 dark:text-purple-400 font-bold text-xs">
+          <i data-lucide="cpu" class="w-4 h-4"></i>
+          <span>4. Pegada Digital ao Gerar o Relatório Sombra</span>
+        </div>
+        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          Para que o dono veja o valor real, o software é obrigado a executar uma query que liga ambas as tabelas (UNION ou soma cruzada). Um dump de memória RAM ou uma captura de pacotes de rede enquanto o relatório sombra está aberto expõe a chave de desencriptação e o destino da base oculta.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Forensic Scan Simulation Runner -->
+    <div class="bg-slate-900 text-white p-4 rounded-lg border border-slate-800 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Simulador de Varredura de Auditoria Forense</h3>
+          <p class="text-[11px] text-slate-400">Execute uma verificação heurística no banco de testes atual para detetar anomalias de bifurcação.</p>
+        </div>
+        <button onclick="executarVarreduraForense()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded transition flex items-center space-x-1.5">
+          <i data-lucide="search" class="w-4 h-4"></i>
+          <span>Executar Verificação de Anomalias</span>
+        </button>
+      </div>
+
+      <div id="forensicConsoleOutput" class="bg-black/60 border border-slate-700 rounded p-3 font-mono text-[11px] text-green-400 max-h-48 overflow-y-auto space-y-1">
+        <div>&gt; Movax Forensic Diagnostic Agent v1.0 pronto. Clique em 'Executar Verificação de Anomalias' para iniciar.</div>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: TEST RECEIPT PREVIEW -->
+  <!-- ===================================================================== -->
   <div id="receiptModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[90vh]">
       
@@ -368,7 +695,7 @@
       <div class="bg-brand-navy text-white px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-2">
           <i data-lucide="receipt" class="w-4 h-4 text-blue-400"></i>
-          <span class="font-bold text-xs uppercase tracking-wider">Talão de Venda · Simulação</span>
+          <span class="font-bold text-xs uppercase tracking-wider" id="receiptModalHeaderTitle">Talão de Venda · Simulação</span>
         </div>
         <button onclick="closeReceiptModal()" class="text-slate-300 hover:text-white">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -383,7 +710,7 @@
           <div class="text-[10px] text-slate-600">Av. 24 de Julho nº 1234, Maputo - Moçambique</div>
           <div class="text-[10px] text-slate-600">NUIT: 400123987 · Tel: +258 84 000 0000</div>
           <div class="my-2 border-b-2 border-dashed border-slate-400"></div>
-          <div class="bg-amber-100 text-amber-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded">
+          <div id="receiptWatermark" class="bg-amber-100 text-amber-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded">
             *** DOCUMENTO DE FORMAÇÃO / TREINO ***
           </div>
           <div class="font-bold text-xs uppercase text-slate-900" id="receiptDocTitle">FACTURA SIMULADA</div>
@@ -425,7 +752,7 @@
         <div class="text-center text-[9px] text-slate-500 space-y-1 pt-3 border-t border-dashed border-slate-300">
           <div>Obrigado pela preferência!</div>
           <div class="font-bold">MOVAX ERP/POS SOFTWARE V2</div>
-          <div>Processado por Programa Certificado nº 000/AT/2026</div>
+          <div id="receiptFooterAuth">Processado por Programa Certificado nº 000/AT/2026</div>
         </div>
       </div>
 
@@ -443,9 +770,9 @@
     </div>
   </div>
 
-  <!-- JavaScript Application Logic -->
+  <!-- JavaScript Application & Simulation Logic -->
   <script>
-    // --- Mock Database for POS Simulation ---
+    // Mock Catalog
     const sampleArticles = [
       { id: 'art-1', code: 'ART001', name: 'Computador Portátil Core i5 16GB', price: 45000.00, stock: 12, iva: 16 },
       { id: 'art-2', code: 'ART002', name: 'Rato Sem Fios Óptico USB', price: 750.00, stock: 48, iva: 16 },
@@ -462,22 +789,33 @@
       { id: 'cli-4', code: 'CLI004', name: 'Dr. João Manuel Baptista', nuit: '102938475', address: 'Sommerschield II, Maputo' }
     ];
 
-    // State Variables
+    // Simulated In-Memory Database
+    let dbOficial = [];
+    let dbOculta = [];
+    let seqOficial = 0;
+    let seqOculta = 0;
+
+    // POS State
+    let currentChannel = 'OFFICIAL'; // 'OFFICIAL' | 'SHADOW'
     let currentDocType = 'CUSTOMER_INVOICE';
-    let docStatus = 'PREPARATION'; // PREPARATION, CONFIRMED
+    let docStatus = 'PREPARATION';
     let cartItems = [];
     let selectedArticle = null;
+    let currentShadowFilter = 'ALL';
 
-    // Currency Formatter
+    // Format Money
     function formatMoney(amount) {
       return (Number(amount) || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MT';
     }
 
-    // Initialize Page
+    // Init
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
-      lucide.createIcons();
+      carregarDoStorage();
+      updatePreviewDocNumber();
+      renderAllReports();
       setupKeyboardShortcuts();
+      lucide.createIcons();
     });
 
     // Theme Toggle
@@ -489,6 +827,60 @@
       lucide.createIcons();
     });
 
+    // Tab Navigation
+    function switchViewTab(tab) {
+      const views = ['pos', 'official', 'shadow', 'forensics'];
+      views.forEach(v => {
+        const el = document.getElementById('view-' + v);
+        const btn = document.getElementById('tab-btn-' + v);
+        if (v === tab) {
+          el.classList.remove('hidden');
+          btn.className = 'px-3.5 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1.5 transition bg-brand-blue text-white shadow-sm';
+        } else {
+          el.classList.add('hidden');
+          btn.className = 'px-3.5 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1.5 transition bg-slate-100 dark:bg-brand-darkCard text-slate-600 dark:text-slate-300 hover:bg-slate-200';
+        }
+      });
+      if (tab === 'official' || tab === 'shadow') {
+        renderAllReports();
+      }
+      lucide.createIcons();
+    }
+
+    // Channel Bifurcation Selector
+    function setRecordingChannel(channel) {
+      currentChannel = channel;
+      const btnOficial = document.getElementById('btn-channel-official');
+      const btnShadow = document.getElementById('btn-channel-shadow');
+
+      if (channel === 'OFFICIAL') {
+        btnOficial.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 bg-green-600 text-white shadow';
+        btnShadow.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 text-purple-300 hover:text-white hover:bg-purple-900/40';
+      } else {
+        btnShadow.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 bg-purple-600 text-white shadow badge-shadow-glow';
+        btnOficial.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 text-green-300 hover:text-white hover:bg-green-900/40';
+      }
+      updatePreviewDocNumber();
+    }
+
+    function toggleRecordingChannel() {
+      setRecordingChannel(currentChannel === 'OFFICIAL' ? 'SHADOW' : 'OFFICIAL');
+    }
+
+    function updatePreviewDocNumber() {
+      const display = document.getElementById('docNumberDisplay');
+      if (currentChannel === 'OFFICIAL') {
+        const nextNum = seqOficial + 1;
+        const prefix = currentDocType === 'CUSTOMER_INVOICE' ? 'FT-OFICIAL' : currentDocType === 'CASH_SALE' ? 'VD-OFICIAL' : 'GR-OFICIAL';
+        display.innerText = `${prefix}/2026-${String(nextNum).padStart(4, '0')}`;
+        display.className = 'font-black text-brand-blue dark:text-blue-400';
+      } else {
+        const nextNum = seqOculta + 1;
+        display.innerText = `VD-SHADOW/2026-${String(nextNum).padStart(4, '0')}`;
+        display.className = 'font-black text-purple-600 dark:text-purple-400';
+      }
+    }
+
     // Switch Document Type
     function selectDocType(type) {
       currentDocType = type;
@@ -497,7 +889,6 @@
       const btnGuide = document.getElementById('btn-doc-guide');
       const headerTitle = document.getElementById('cartHeaderTitle');
 
-      // Reset styles
       [btnInvoice, btnCash, btnGuide].forEach(b => {
         b.className = 'px-4 py-2 rounded-md font-extrabold text-xs uppercase transition bg-brand-lightBg dark:bg-brand-darkCard text-[#737780] hover:text-[#191c1d] dark:hover:text-white';
       });
@@ -512,14 +903,13 @@
         btnGuide.className = 'px-4 py-2 rounded-md font-extrabold text-xs uppercase transition shadow-md bg-brand-navy text-white';
         headerTitle.innerText = 'Artigos · Guia de Remessa';
       }
+      updatePreviewDocNumber();
     }
 
     // Customer Lookup
     function onCustomerCodeChange(code) {
       const match = sampleCustomers.find(c => c.code.toLowerCase() === code.trim().toLowerCase());
-      if (match) {
-        setCustomerFields(match);
-      }
+      if (match) setCustomerFields(match);
     }
 
     function filterCustomerDropdown(query) {
@@ -547,9 +937,7 @@
 
     function selectCustomer(id) {
       const customer = sampleCustomers.find(c => c.id === id);
-      if (customer) {
-        setCustomerFields(customer);
-      }
+      if (customer) setCustomerFields(customer);
       document.getElementById('customerSuggestions').classList.add('hidden');
     }
 
@@ -714,12 +1102,10 @@
       const totalDiscounts = lineDiscounts + globalDiscount;
       const netTotal = Math.max(0, gross - totalDiscounts);
       
-      // Pro-rata tax calculation
       const taxRate = net16 > 0 ? 0.16 : 0;
       const totalTax = (net16 / (net16 + net0 || 1)) * netTotal * 0.16;
       const grandTotal = netTotal + totalTax;
 
-      // Update Totalizer DOM
       document.getElementById('appliedDiscountLabel').innerText = 'Aplicado: ' + formatMoney(globalDiscount);
       document.getElementById('taxBase16').innerText = formatMoney(net16);
       document.getElementById('taxVal16').innerText = formatMoney(totalTax);
@@ -729,6 +1115,8 @@
       document.getElementById('sumDiscounts').innerText = '-' + formatMoney(totalDiscounts);
       document.getElementById('sumTax').innerText = formatMoney(totalTax);
       document.getElementById('sumGrandTotal').innerText = formatMoney(grandTotal);
+
+      return { gross, totalDiscounts, totalTax, grandTotal, netTotal };
     }
 
     function onPaymentChange() {
@@ -745,33 +1133,96 @@
       }
     }
 
-    // Confirm Sale & Display Simulated Receipt
+    // Confirm Sale with Dual-Ledger Bifurcation
     function confirmSale(openPrintPreview) {
       if (cartItems.length === 0) {
-        alert('Adicione pelo menos 1 artigo ao carrinho para simular a emissão do documento.');
+        alert('Adicione pelo menos 1 artigo ao carrinho para confirmar o registo.');
         return;
       }
 
-      docStatus = 'CONFIRMED';
-      const docPrefix = currentDocType === 'CUSTOMER_INVOICE' ? 'FT SIMULADA' : currentDocType === 'CASH_SALE' ? 'VD SIMULADA' : 'GR SIMULADA';
-      const simulatedDocNum = docPrefix + ' 2026/' + Math.floor(1000 + Math.random() * 9000);
+      const totals = calculateTotals();
+      const clientName = document.getElementById('clientName').value;
+      const clientNuit = document.getElementById('clientNuit').value;
+      const paymentMode = document.getElementById('paymentMethod').selectedOptions[0].text;
+      const dateStr = new Date().toLocaleString('pt-PT');
+      const itemsCopy = JSON.parse(JSON.stringify(cartItems));
 
-      document.getElementById('docNumberDisplay').innerText = simulatedDocNum;
-      
+      let docNum = '';
+      let recordOrigin = currentChannel;
+
+      if (currentChannel === 'OFFICIAL') {
+        seqOficial += 1;
+        const prefix = currentDocType === 'CUSTOMER_INVOICE' ? 'FT-OFICIAL' : currentDocType === 'CASH_SALE' ? 'VD-OFICIAL' : 'GR-OFICIAL';
+        docNum = `${prefix}/2026-${String(seqOficial).padStart(4, '0')}`;
+        
+        dbOficial.push({
+          id: 'ofc-' + Date.now(),
+          docNum,
+          docType: currentDocType,
+          date: dateStr,
+          clientName,
+          clientNuit,
+          paymentMode,
+          items: itemsCopy,
+          gross: totals.gross,
+          tax: totals.totalTax,
+          total: totals.grandTotal,
+          channel: 'OFFICIAL'
+        });
+      } else {
+        seqOculta += 1;
+        docNum = `VD-SHADOW/2026-${String(seqOculta).padStart(4, '0')}`;
+        
+        dbOculta.push({
+          id: 'shd-' + Date.now(),
+          docNum,
+          docType: 'SHADOW_SALE',
+          date: dateStr,
+          clientName,
+          clientNuit,
+          paymentMode,
+          items: itemsCopy,
+          gross: totals.gross,
+          tax: totals.totalTax,
+          total: totals.grandTotal,
+          channel: 'SHADOW'
+        });
+      }
+
+      guardarNoStorage();
+      renderAllReports();
+
+      // UI Feedback
+      document.getElementById('docNumberDisplay').innerText = docNum;
       const badge = document.getElementById('statusBadge');
-      badge.className = 'bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-300 border border-green-300 dark:border-green-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]';
-      badge.innerText = '● CONFIRMADO (SIMULAÇÃO)';
+      if (currentChannel === 'OFFICIAL') {
+        badge.className = 'bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-300 border border-green-300 dark:border-green-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]';
+        badge.innerText = '● GRAVADO NA TABELA OFICIAL (A)';
+      } else {
+        badge.className = 'bg-purple-100 text-purple-900 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-300 dark:border-purple-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]';
+        badge.innerText = '● DESVIADO PARA TABELA SOMBRA (B)';
+      }
 
       // Populate Receipt Modal
-      document.getElementById('receiptDocTitle').innerText = currentDocType === 'CUSTOMER_INVOICE' ? 'FACTURA' : currentDocType === 'CASH_SALE' ? 'VENDA A DINHEIRO' : 'GUIA DE REMESSA';
-      document.getElementById('receiptDocNumber').innerText = simulatedDocNum;
-      document.getElementById('receiptDocDate').innerText = 'Data: ' + new Date().toLocaleString('pt-PT');
-      document.getElementById('receiptClientName').innerText = document.getElementById('clientName').value;
-      document.getElementById('receiptClientNuit').innerText = document.getElementById('clientNuit').value;
-      document.getElementById('receiptPaymentMode').innerText = document.getElementById('paymentMethod').selectedOptions[0].text;
+      document.getElementById('receiptDocTitle').innerText = currentChannel === 'OFFICIAL' ? (currentDocType === 'CUSTOMER_INVOICE' ? 'FACTURA FISCAL' : 'VENDA A DINHEIRO') : 'TALÃO NÃO FISCAL (MODO PARALELO)';
+      document.getElementById('receiptDocNumber').innerText = docNum;
+      document.getElementById('receiptDocDate').innerText = 'Data: ' + dateStr;
+      document.getElementById('receiptClientName').innerText = clientName;
+      document.getElementById('receiptClientNuit').innerText = clientNuit;
+      document.getElementById('receiptPaymentMode').innerText = paymentMode;
+
+      if (currentChannel === 'SHADOW') {
+        document.getElementById('receiptWatermark').innerText = '*** REGISTO OCULTO (TABELA B) ***';
+        document.getElementById('receiptWatermark').className = 'bg-purple-100 text-purple-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded';
+        document.getElementById('receiptFooterAuth').innerText = 'Documento Interno de Conferência (Não Transmitido ao Fisco)';
+      } else {
+        document.getElementById('receiptWatermark').innerText = '*** DOCUMENTO FISCAL OFICIAL ***';
+        document.getElementById('receiptWatermark').className = 'bg-green-100 text-green-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded';
+        document.getElementById('receiptFooterAuth').innerText = 'Processado por Programa Certificado nº 000/AT/2026';
+      }
 
       const receiptTbody = document.getElementById('receiptTableBody');
-      receiptTbody.innerHTML = cartItems.map(item => `
+      receiptTbody.innerHTML = itemsCopy.map(item => `
         <tr>
           <td class="py-1"><strong>${item.code}</strong><br><span class="text-[9px] text-slate-500">${item.description}</span></td>
           <td class="py-1 text-center font-bold">${item.qty}</td>
@@ -788,7 +1239,8 @@
       if (openPrintPreview) {
         document.getElementById('receiptModal').classList.remove('hidden');
       } else {
-        alert('Venda simulada com sucesso! Número de registo: ' + simulatedDocNum);
+        const canalDesc = currentChannel === 'OFFICIAL' ? 'Tabela Oficial (A)' : 'Tabela Oculta (B)';
+        alert(`Transação gravada com sucesso no canal: ${canalDesc}\nNº Documento: ${docNum}\nConsulte o 'Relatório Sombra' para ver a consolidação real.`);
       }
     }
 
@@ -799,7 +1251,7 @@
     function resetPosForm() {
       cartItems = [];
       docStatus = 'PREPARATION';
-      document.getElementById('docNumberDisplay').innerText = 'A atribuir ao confirmar';
+      updatePreviewDocNumber();
       const badge = document.getElementById('statusBadge');
       badge.className = 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]';
       badge.innerText = '● PREPARAÇÃO';
@@ -814,7 +1266,313 @@
       renderCart();
     }
 
-    // Keyboard Shortcuts (F2, F5, F9, Escape)
+    // Reports Rendering (Official & Shadow Consolidated)
+    function renderAllReports() {
+      // 1. Badge Counts
+      document.getElementById('badgeOficialCount').innerText = dbOficial.length;
+      document.getElementById('badgeShadowCount').innerText = dbOficial.length + dbOculta.length;
+
+      // 2. Official Report Calculations
+      let ofcGross = 0;
+      let ofcTax = 0;
+      dbOficial.forEach(tx => {
+        ofcGross += tx.total;
+        ofcTax += tx.tax;
+      });
+
+      document.getElementById('kpi-official-gross').innerText = formatMoney(ofcGross);
+      document.getElementById('kpi-official-tax').innerText = formatMoney(ofcTax);
+      document.getElementById('kpi-official-count').innerText = `${dbOficial.length} documento(s) fiscal(is)`;
+
+      const tableOfcBody = document.getElementById('tableOfficialBody');
+      const emptyOfc = document.getElementById('emptyOfficialState');
+
+      if (dbOficial.length === 0) {
+        tableOfcBody.innerHTML = '';
+        emptyOfc.classList.remove('hidden');
+      } else {
+        emptyOfc.classList.add('hidden');
+        tableOfcBody.innerHTML = dbOficial.map(tx => `
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+            <td class="p-2.5 font-bold text-green-700 dark:text-green-400">${tx.docNum}</td>
+            <td class="p-2.5 text-slate-500">${tx.date}</td>
+            <td class="p-2.5 font-semibold text-slate-800 dark:text-slate-100">${tx.clientName}</td>
+            <td class="p-2.5 text-slate-500">${tx.clientNuit}</td>
+            <td class="p-2.5"><span class="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">${tx.paymentMode}</span></td>
+            <td class="p-2.5 text-right font-mono">${formatMoney(tx.gross)}</td>
+            <td class="p-2.5 text-right font-mono text-blue-600">${formatMoney(tx.tax)}</td>
+            <td class="p-2.5 text-right font-bold text-green-700 dark:text-green-400 font-mono">${formatMoney(tx.total)}</td>
+          </tr>
+        `).join('');
+      }
+
+      // 3. Shadow Report Calculations (Consolidation)
+      let shdGross = 0;
+      let shdTax = 0;
+      dbOculta.forEach(tx => {
+        shdGross += tx.total;
+        shdTax += tx.tax;
+      });
+
+      const totalRealRevenue = ofcGross + shdGross;
+      const totalTaxEvaded = shdTax;
+      const evasionRate = totalRealRevenue > 0 ? ((shdGross / totalRealRevenue) * 100).toFixed(1) : '0.00';
+
+      document.getElementById('kpi-shadow-official').innerText = formatMoney(ofcGross);
+      document.getElementById('kpi-shadow-official-txs').innerText = `${dbOficial.length} doc(s) declarados`;
+
+      document.getElementById('kpi-shadow-hidden').innerText = formatMoney(shdGross);
+      document.getElementById('kpi-shadow-hidden-txs').innerText = `${dbOculta.length} doc(s) ocultados`;
+
+      document.getElementById('kpi-shadow-total').innerText = formatMoney(totalRealRevenue);
+      document.getElementById('kpi-shadow-total-txs').innerText = `${dbOficial.length + dbOculta.length} transações reais`;
+
+      document.getElementById('kpi-shadow-evasion-rate').innerText = evasionRate + '%';
+      document.getElementById('kpi-shadow-tax-evaded').innerText = formatMoney(totalTaxEvaded);
+
+      renderShadowTable();
+    }
+
+    function filterShadowTable(filter) {
+      currentShadowFilter = filter;
+      ['all', 'official', 'shadow'].forEach(f => {
+        const btn = document.getElementById('btn-filter-' + f);
+        if (f.toUpperCase() === filter) {
+          btn.className = 'px-2.5 py-1 rounded bg-brand-blue text-white font-bold';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-300';
+        }
+      });
+      renderShadowTable();
+    }
+
+    function renderShadowTable() {
+      const tableShadowBody = document.getElementById('tableShadowBody');
+      const emptyShadow = document.getElementById('emptyShadowState');
+
+      let combined = [];
+      if (currentShadowFilter === 'ALL' || currentShadowFilter === 'OFFICIAL') {
+        combined = combined.concat(dbOficial);
+      }
+      if (currentShadowFilter === 'ALL' || currentShadowFilter === 'SHADOW') {
+        combined = combined.concat(dbOculta);
+      }
+
+      if (combined.length === 0) {
+        tableShadowBody.innerHTML = '';
+        emptyShadow.classList.remove('hidden');
+      } else {
+        emptyShadow.classList.add('hidden');
+        tableShadowBody.innerHTML = combined.map(tx => {
+          const isShadow = tx.channel === 'SHADOW';
+          const badge = isShadow 
+            ? `<span class="bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800 px-2 py-0.5 rounded font-black text-[10px] uppercase">● SOMBRA (B)</span>`
+            : `<span class="bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-300 border border-green-300 dark:border-green-800 px-2 py-0.5 rounded font-black text-[10px] uppercase">● OFICIAL (A)</span>`;
+          
+          const itemsSummary = tx.items.map(i => `${i.qty}x ${i.description}`).join(', ');
+
+          return `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isShadow ? 'bg-purple-50/20 dark:bg-purple-950/10' : ''}">
+              <td class="p-2.5">${badge}</td>
+              <td class="p-2.5 font-bold ${isShadow ? 'text-purple-700 dark:text-purple-400' : 'text-slate-800 dark:text-slate-200'}">${tx.docNum}</td>
+              <td class="p-2.5 text-slate-500">${tx.date}</td>
+              <td class="p-2.5 font-semibold text-slate-800 dark:text-slate-100">${tx.clientName}</td>
+              <td class="p-2.5 text-[11px] text-slate-600 dark:text-slate-300 max-w-xs truncate" title="${itemsSummary}">${itemsSummary}</td>
+              <td class="p-2.5"><span class="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">${tx.paymentMode}</span></td>
+              <td class="p-2.5 text-right font-mono ${isShadow ? 'text-purple-600 font-bold' : 'text-slate-500'}">${formatMoney(tx.tax)}</td>
+              <td class="p-2.5 text-right font-bold font-mono ${isShadow ? 'text-purple-600 dark:text-purple-400' : 'text-green-700 dark:text-green-400'}">${formatMoney(tx.total)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Demo Data Preloader
+    function carregarCenarioExemplo() {
+      dbOficial = [
+        {
+          id: 'ofc-1',
+          docNum: 'FT-OFICIAL/2026-0001',
+          docType: 'CUSTOMER_INVOICE',
+          date: '22/08/2026 09:15:20',
+          clientName: 'Cliente Pontual / Final',
+          clientNuit: '999999999',
+          paymentMode: 'Dinheiro',
+          items: [{ code: 'ART001', description: 'Café Expresso', qty: 2, unitPrice: 60.0, discount: 0, iva: 16, net: 120.0, tax: 19.20, total: 139.20 }],
+          gross: 120.0,
+          tax: 19.20,
+          total: 139.20,
+          channel: 'OFFICIAL'
+        },
+        {
+          id: 'ofc-2',
+          docNum: 'FT-OFICIAL/2026-0002',
+          docType: 'CUSTOMER_INVOICE',
+          date: '22/08/2026 11:40:12',
+          clientName: 'Empresa Alpha Moçambique, Lda',
+          clientNuit: '400555666',
+          paymentMode: 'POS / Cartão',
+          items: [{ code: 'ART005', description: 'Resma de Papel A4 80g (500fls)', qty: 5, unitPrice: 350.0, discount: 0, iva: 16, net: 1750.0, tax: 280.0, total: 2030.0 }],
+          gross: 1750.0,
+          tax: 280.0,
+          total: 2030.0,
+          channel: 'OFFICIAL'
+        },
+        {
+          id: 'ofc-3',
+          docNum: 'FT-OFICIAL/2026-0003',
+          docType: 'CUSTOMER_INVOICE',
+          date: '22/08/2026 14:10:05',
+          clientName: 'Comercial & Distribuição Beta, SA',
+          clientNuit: '400888999',
+          paymentMode: 'M-Pesa',
+          items: [{ code: 'ART002', description: 'Rato Sem Fios Óptico USB', qty: 3, unitPrice: 750.0, discount: 0, iva: 16, net: 2250.0, tax: 360.0, total: 2610.0 }],
+          gross: 2250.0,
+          tax: 360.0,
+          total: 2610.0,
+          channel: 'OFFICIAL'
+        }
+      ];
+
+      dbOculta = [
+        {
+          id: 'shd-1',
+          docNum: 'VD-SHADOW/2026-0001',
+          docType: 'SHADOW_SALE',
+          date: '22/08/2026 10:02:18',
+          clientName: 'Cliente Pontual',
+          clientNuit: '999999999',
+          paymentMode: 'Dinheiro',
+          items: [{ code: 'ART-GEN', description: 'Almoço Executivo + Bebida', qty: 1, unitPrice: 650.0, discount: 0, iva: 16, net: 650.0, tax: 104.0, total: 754.0 }],
+          gross: 650.0,
+          tax: 104.0,
+          total: 754.0,
+          channel: 'SHADOW'
+        },
+        {
+          id: 'shd-2',
+          docNum: 'VD-SHADOW/2026-0002',
+          docType: 'SHADOW_SALE',
+          date: '22/08/2026 12:25:44',
+          clientName: 'Dr. João Manuel Baptista',
+          clientNuit: '102938475',
+          paymentMode: 'Dinheiro',
+          items: [{ code: 'ART001', description: 'Computador Portátil Core i5 16GB', qty: 1, unitPrice: 45000.0, discount: 0, iva: 16, net: 45000.0, tax: 7200.0, total: 52200.0 }],
+          gross: 45000.0,
+          tax: 7200.0,
+          total: 52200.0,
+          channel: 'SHADOW'
+        },
+        {
+          id: 'shd-3',
+          docNum: 'VD-SHADOW/2026-0003',
+          docType: 'SHADOW_SALE',
+          date: '22/08/2026 16:50:31',
+          clientName: 'Cliente Final',
+          clientNuit: '999999999',
+          paymentMode: 'Dinheiro',
+          items: [{ code: 'ART004', description: 'Monitor LED 24 Polegadas Full HD', qty: 2, unitPrice: 11500.0, discount: 0, iva: 16, net: 23000.0, tax: 3680.0, total: 26680.0 }],
+          gross: 23000.0,
+          tax: 3680.0,
+          total: 26680.0,
+          channel: 'SHADOW'
+        }
+      ];
+
+      seqOficial = 3;
+      seqOculta = 3;
+      guardarNoStorage();
+      renderAllReports();
+      alert('Cenário de teste carregado com sucesso!\n3 transações Oficiais (4.779,20 MT) e 3 transações Sombra (79.634,00 MT).\nAbra a aba "Relatório Sombra" para conferir a reconciliação.');
+    }
+
+    function limparBaseDadosSimulada() {
+      if (confirm('Tem a certeza de que deseja limpar todas as transações em memória?')) {
+        dbOficial = [];
+        dbOculta = [];
+        seqOficial = 0;
+        seqOculta = 0;
+        localStorage.removeItem('movax_sim_db_oficial');
+        localStorage.removeItem('movax_sim_db_oculta');
+        renderAllReports();
+        resetPosForm();
+      }
+    }
+
+    function guardarNoStorage() {
+      try {
+        localStorage.setItem('movax_sim_db_oficial', JSON.stringify(dbOficial));
+        localStorage.setItem('movax_sim_db_oculta', JSON.stringify(dbOculta));
+        localStorage.setItem('movax_sim_seq_ofc', String(seqOficial));
+        localStorage.setItem('movax_sim_seq_shd', String(seqOculta));
+      } catch (e) {}
+    }
+
+    function carregarDoStorage() {
+      try {
+        const ofc = localStorage.getItem('movax_sim_db_oficial');
+        const shd = localStorage.getItem('movax_sim_db_oculta');
+        const sOfc = localStorage.getItem('movax_sim_seq_ofc');
+        const sShd = localStorage.getItem('movax_sim_seq_shd');
+        if (ofc) dbOficial = JSON.parse(ofc);
+        if (shd) dbOculta = JSON.parse(shd);
+        if (sOfc) seqOficial = parseInt(sOfc) || 0;
+        if (sShd) seqOculta = parseInt(sShd) || 0;
+      } catch (e) {}
+    }
+
+    function exportTableToCSV(type) {
+      let data = type === 'official' ? dbOficial : dbOficial.concat(dbOculta);
+      let csv = 'NumDoc;Data;Cliente;NUIT;FormaPagamento;Iliquido;IVA;Total\n';
+      data.forEach(r => {
+        csv += `${r.docNum};${r.date};${r.clientName};${r.clientNuit};${r.paymentMode};${r.gross};${r.tax};${r.total}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `extracao_${type}_${Date.now()}.csv`;
+      a.click();
+    }
+
+    // Forensic Diagnostic Runner
+    function executarVarreduraForense() {
+      const consoleOut = document.getElementById('forensicConsoleOutput');
+      consoleOut.innerHTML = `
+        <div class="text-amber-400">[INICIANDO DIAGNÓSTICO FORENSE DE SISTEMA ERP/POS]</div>
+        <div>▸ Analisando conexões ativas de banco de dados e endpoints...</div>
+      `;
+
+      setTimeout(() => {
+        consoleOut.innerHTML += `
+          <div>▸ [VETOR 1 - NUMERAÇÃO]: Inspecionando sequencial de documentos fiscais...</div>
+          <div>  ↳ Sequência oficial auditada: ${dbOficial.length} documentos encontrados.</div>
+        `;
+      }, 400);
+
+      setTimeout(() => {
+        const cashTxs = dbOculta.filter(t => t.paymentMode === 'Dinheiro').length;
+        consoleOut.innerHTML += `
+          <div>▸ [VETOR 2 - FLUXO CAIXA]: Verificando distribuição de pagamentos em numerário...</div>
+          <div>  ↳ Detectado desvio de volume em numerário: ${cashTxs} transações fora do circuito SAF-T.</div>
+        `;
+      }, 800);
+
+      setTimeout(() => {
+        const evadedTax = dbOculta.reduce((acc, t) => acc + t.tax, 0);
+        consoleOut.innerHTML += `
+          <div>▸ [VETOR 3 - ANÁLISE SHADOW]: Consolidação cruzada Tabela A + Tabela B concluída.</div>
+          <div class="text-red-400 font-bold">⚠️ ALERTA DE DISCREPÂNCIA DETETADO:</div>
+          <div class="text-red-400">  ↳ Receita Declarada (Oficial): ${formatMoney(dbOficial.reduce((a,b)=>a+b.total, 0))}</div>
+          <div class="text-red-400">  ↳ Receita Ocultada (Paralelo): ${formatMoney(dbOculta.reduce((a,b)=>a+b.total, 0))}</div>
+          <div class="text-amber-300">  ↳ Imposto Omitido Estimado: ${formatMoney(evadedTax)}</div>
+          <div class="text-green-300 font-bold">✓ Relatório de evidência gerado com sucesso para fins de estudo forense.</div>
+        `;
+        consoleOut.scrollTop = consoleOut.scrollHeight;
+      }, 1300);
+    }
+
+    // Keyboard Shortcuts (F2, F5, F9, Escape, Alt+S)
     function setupKeyboardShortcuts() {
       window.addEventListener('keydown', (e) => {
         if (e.key === 'F2') {
@@ -828,6 +1586,9 @@
           confirmSale(true);
         } else if (e.key === 'Escape') {
           closeReceiptModal();
+        } else if (e.altKey && (e.key === 's' || e.key === 'S')) {
+          e.preventDefault();
+          toggleRecordingChannel();
         }
       });
     }
