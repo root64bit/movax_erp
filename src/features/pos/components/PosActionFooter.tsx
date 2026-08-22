@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { SaleInvoice } from '@/shared/types/domain.types';
 import type { PosDocumentType, PosDocStatus } from '../types/pos.types';
 import { formatMZN } from '@/shared/utils/formatters';
@@ -110,6 +110,26 @@ export const PosActionFooter: React.FC<PosActionFooterProps> = ({
           </div>
         )}
 
+        {docStatus === 'CONFIRMED' && (
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-400 dark:border-emerald-700 p-3 rounded-lg flex flex-wrap items-center justify-between gap-3 shadow-xs font-sans print:hidden">
+            <div className="flex items-center space-x-2">
+              <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-lg">check_circle</span>
+              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                Documento gravado com sucesso! Prima <b>F2</b> ou <b>F5</b> para criar uma nova factura.
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={onResetForm}
+                className="px-3 py-1.5 bg-[#006e25] text-white rounded font-bold text-xs uppercase hover:bg-green-700 shadow-xs cursor-pointer"
+              >
+                + Nova Factura (F2)
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-center pt-2 border-t border-[#c3c6d1] dark:border-[#43474f] print:hidden">
           {saveError && (
             <p role="alert" className="rounded bg-red-100 p-2 text-xs font-bold text-red-800 print:hidden">
@@ -118,17 +138,28 @@ export const PosActionFooter: React.FC<PosActionFooterProps> = ({
           )}
 
           <div className="flex items-center space-x-3 ml-auto">
-            {isReadOnly && confirmedSaleRecord && (
-              <button
-                type="button"
-                onClick={() => onOpenPrintModal(confirmedSaleRecord)}
-                className="px-5 py-2 bg-[#003366] text-white rounded font-bold text-xs uppercase hover:bg-blue-800 shadow-sm cursor-pointer"
-              >
-                Imprimir documento (F9)
-              </button>
-            )}
-
-            {!isReadOnly && (
+            {isReadOnly ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onResetForm}
+                  className="px-5 py-2 bg-[#006e25] text-white rounded font-black text-xs uppercase hover:brightness-110 shadow-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">add_circle</span>
+                  <span>Nova Factura (F2 / F5)</span>
+                </button>
+                {confirmedSaleRecord && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenPrintModal(confirmedSaleRecord)}
+                    className="px-5 py-2 bg-[#003366] text-white rounded font-bold text-xs uppercase hover:bg-blue-800 shadow-sm cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-sm">print</span>
+                    <span>Imprimir documento (F9)</span>
+                  </button>
+                )}
+              </>
+            ) : (
               <>
                 <button
                   type="button"
@@ -169,7 +200,9 @@ export const PosActionFooter: React.FC<PosActionFooterProps> = ({
         <div className="flex flex-wrap items-center gap-3 sm:gap-6">
           <span>ESC=Sair</span>
           <button type="button" onClick={onF2Action} className="hover:underline cursor-pointer">
-            <span className="bg-[#003366] text-white px-2 py-0.5 rounded">F2=Gravar</span>
+            <span className="bg-[#003366] text-white px-2 py-0.5 rounded">
+              {isReadOnly ? 'F2=Novo' : docStatus === 'CONFIRMING' ? 'F2=Confirmar' : 'F2=Gravar'}
+            </span>
           </button>
           <button type="button" onClick={onAdjust} className="hover:underline cursor-pointer">
             <span>F3=Ajustar</span>

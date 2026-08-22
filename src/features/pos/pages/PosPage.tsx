@@ -308,6 +308,10 @@ export const NewSale: React.FC<PosProps> = ({
 
   const handleF2Action = () => {
     if (savingRef.current) return;
+    if (docStatus === 'CONFIRMED' || docStatus === 'READ_ONLY') {
+      handleResetForm();
+      return;
+    }
     if (docStatus === 'CONFIRMING') {
       void handleSaveAndConfirm(false);
       return;
