@@ -196,11 +196,19 @@ export const Inventory: React.FC<InventoryProps> = ({
   const lowStockCount = serverTotals?.lowStockCount ?? filteredArticles.filter((article) => article.stock <= article.minStock).length;
   const outOfStockCount = serverTotals?.outOfStockCount ?? filteredArticles.filter((article) => article.stock <= 0).length;
 
+  const handleOpenNewArticle = React.useCallback(() => {
+    if (onOpenNewArticleModal) {
+      onOpenNewArticleModal();
+    } else if (onOpenNewModal) {
+      onOpenNewModal();
+    }
+  }, [onOpenNewArticleModal, onOpenNewModal]);
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2' && canCreate) {
         e.preventDefault();
-        onOpenNewArticleModal?.();
+        handleOpenNewArticle();
       } else if (e.key === 'F3' && displayArticles.length > 0 && onEditArticle) {
         e.preventDefault();
         onEditArticle(displayArticles[0]);
@@ -214,7 +222,7 @@ export const Inventory: React.FC<InventoryProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canCreate, onOpenNewArticleModal, displayArticles, onEditArticle]);
+  }, [canCreate, handleOpenNewArticle, displayArticles, onEditArticle]);
 
   const totalArticlesCount = displayTotalCount;
   const totalStock = serverTotals?.stockQty ?? filteredArticles.reduce((acc, a) => acc + a.stock, 0);
@@ -273,7 +281,15 @@ export const Inventory: React.FC<InventoryProps> = ({
           </button>
 
           <div className="flex flex-wrap items-center gap-2">
-            {canCreate && <button onClick={() => onOpenNewArticleModal?.()} className="flex items-center gap-2 rounded-xl bg-[#006e25] px-4 text-xs font-black text-white shadow-sm hover:brightness-110"><span className="material-symbols-outlined text-[18px]">add</span>Novo artigo</button>}
+            {canCreate && (
+              <button
+                type="button"
+                onClick={handleOpenNewArticle}
+                className="flex items-center gap-2 rounded-xl bg-[#006e25] px-4 text-xs font-black text-white shadow-sm hover:brightness-110"
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>Novo artigo
+              </button>
+            )}
             <button onClick={() => setActiveTab?.('movements')} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50 dark:border-[#34383b] dark:bg-[#202529] dark:text-slate-200"><span className="material-symbols-outlined text-[18px]">swap_horiz</span>Movimentos</button>
           </div>
         </div>
@@ -453,7 +469,7 @@ export const Inventory: React.FC<InventoryProps> = ({
           <span>ESC=Sair</span>
           <span>TAB=Ord</span>
           <span>Barra=Filtro</span>
-          <button onClick={onOpenNewArticleModal} className="rounded bg-[#003366] px-2 py-0.5 text-white font-bold hover:brightness-110">
+          <button type="button" onClick={handleOpenNewArticle} className="rounded bg-[#003366] px-2 py-0.5 text-white font-bold hover:brightness-110">
             F2=Introduzir
           </button>
           {displayArticles.length > 0 && onEditArticle && (

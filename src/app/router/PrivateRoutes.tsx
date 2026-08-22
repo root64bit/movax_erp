@@ -92,6 +92,7 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
 
   // Modals state
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [partyModalType, setPartyModalType] = useState<'customer' | 'supplier' | null>(null);
   const [paymentModalDoc, setPaymentModalDoc] = useState<DocumentRecord | null>(null);
@@ -255,7 +256,11 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
             suppliers={suppliers}
             serverDate={new Date().toISOString()}
             onNavigate={(tab: string) => changeTab(tab)}
-            canViewCost={permissions.includes('reports.stock')}
+            onOpenNewArticleModal={() => {
+              setEditingArticle(null);
+              setIsArticleModalOpen(true);
+            }}
+            canViewCost={permissions.includes('reports.stock') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
             canAllowNegative={permissions.includes('stock.negative')}
             permissions={permissions}
           />
@@ -277,10 +282,14 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
             warehouseId={userContext?.activeWarehouse?.id}
             paymentMethods={paymentMethods}
             paymentTerms={paymentTerms}
-            canViewCost={permissions.includes('reports.stock')}
+            canViewCost={permissions.includes('reports.stock') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
             canAllowNegative={permissions.includes('stock.negative')}
             permissions={permissions}
             canReceivePayment={permissions.includes('payments.create')}
+            onUpdateDocument={async (id, payload) => {
+              await DocumentsService.updateDocumentDetails(id, payload);
+              await refreshData('sales');
+            }}
           />
         )}
 
@@ -311,14 +320,25 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
             movements={movements}
             sales={sales}
             documents={documents}
-            canCreate={permissions.includes('products.create')}
-            canEdit={permissions.includes('products.edit')}
-            canDelete={permissions.includes('products.delete')}
-            canViewCost={permissions.includes('reports.stock')}
+            canCreate={permissions.includes('products.create') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canEdit={permissions.includes('products.edit') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canDelete={permissions.includes('products.delete') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canViewCost={permissions.includes('reports.stock') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
             canAllowNegative={permissions.includes('stock.negative')}
-            canAdjustStock={permissions.includes('stock.adjust')}
+            canAdjustStock={permissions.includes('stock.adjust') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
             warehouseId={userContext?.activeWarehouse?.id}
-            onOpenNewModal={() => setIsArticleModalOpen(true)}
+            onOpenNewModal={() => {
+              setEditingArticle(null);
+              setIsArticleModalOpen(true);
+            }}
+            onOpenNewArticleModal={() => {
+              setEditingArticle(null);
+              setIsArticleModalOpen(true);
+            }}
+            onEditArticle={(art) => {
+              setEditingArticle(art);
+              setIsArticleModalOpen(true);
+            }}
             onSaveArticle={async (art: any) => {
               await InventoryService.saveArticle(art);
               await refreshData('stock');
@@ -416,15 +436,28 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
             payments={payments}
             ledgers={ledgers}
             paymentMethods={paymentMethods}
-            canManageCash={permissions.includes('cash_sessions.manage')}
-            canRegisterPayment={permissions.includes('payments.create')}
+            canCash={permissions.includes('cash_sessions.view') || permissions.includes('cash_sessions.manage') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canManageCash={permissions.includes('cash_sessions.manage') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canReceive={permissions.includes('payments.create') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canPay={permissions.includes('payments.create') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canRegisterPayment={permissions.includes('payments.create') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
             onOpenReceiptModal={(doc: any) => setPaymentModalDoc(doc)}
+            onReceiveDocument={(doc: any) => setPaymentModalDoc(doc)}
+            onPayDocument={(doc: any) => setPaymentModalDoc(doc)}
             onPrintRecord={(doc: any) => setPrintRecord(doc)}
+            onRefreshData={async () => {
+              await refreshData('documents');
+            }}
             onDirectPayment={async (partyType: 'CUSTOMER' | 'SUPPLIER', partyId: string, method: string, amt: number, desc?: string) => {
               if (partyType === 'CUSTOMER') {
                 const targetDoc = documents.find((d) => d.partyId === partyId) || sales.find((s) => s.clientId === partyId);
                 if (targetDoc) {
                   await CashService.createCustomerPayment(targetDoc, method, amt, desc || '');
+                }
+              } else if (partyType === 'SUPPLIER') {
+                const targetDoc = documents.find((d) => d.partyId === partyId && d.partyType === 'SUPPLIER');
+                if (targetDoc) {
+                  await CashService.createSupplierPayment(targetDoc, method, amt, desc || '');
                 }
               }
               await refreshData('documents');
@@ -436,15 +469,23 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
           <Entities
             clients={clients}
             suppliers={suppliers}
-            canCreate={permissions.includes('customers.create') || permissions.includes('suppliers.create')}
-            canEdit={permissions.includes('customers.edit') || permissions.includes('suppliers.edit')}
-            canDelete={permissions.includes('customers.delete') || permissions.includes('suppliers.delete')}
+            canCreate={permissions.includes('customers.create') || permissions.includes('suppliers.create') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canEdit={permissions.includes('customers.edit') || permissions.includes('suppliers.edit') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
+            canDelete={permissions.includes('customers.delete') || permissions.includes('suppliers.delete') || roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')}
             onOpenModal={(type: 'customer' | 'supplier') => {
               setPartyModalType(type);
               setIsPartyModalOpen(true);
             }}
-            onUpdateParty={async (type: 'customer' | 'supplier', id: string, input: PartyInput) => {
-              await PartiesService.updateParty(type, id, input);
+            onNewCustomer={() => {
+              setPartyModalType('customer');
+              setIsPartyModalOpen(true);
+            }}
+            onNewSupplier={() => {
+              setPartyModalType('supplier');
+              setIsPartyModalOpen(true);
+            }}
+            onUpdateParty={async (type: 'customer' | 'supplier', id: string, input: PartyInput, active = true) => {
+              await PartiesService.updateParty(type, id, input, active);
               await refreshData('entities');
             }}
             onDeleteParty={async (type: 'customer' | 'supplier', id: string) => {
@@ -515,12 +556,23 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
       {isArticleModalOpen && (
         <NewArticleModal
           isOpen={isArticleModalOpen}
-          onClose={() => setIsArticleModalOpen(false)}
+          onClose={() => {
+            setIsArticleModalOpen(false);
+            setEditingArticle(null);
+          }}
           onSave={async (art: any) => {
             await InventoryService.saveArticle(art);
             await refreshData('stock');
             setIsArticleModalOpen(false);
+            setEditingArticle(null);
           }}
+          onUpdate={async (art: any) => {
+            await InventoryService.saveArticle({ ...art, id: art.id });
+            await refreshData('stock');
+            setIsArticleModalOpen(false);
+            setEditingArticle(null);
+          }}
+          articleToEdit={editingArticle}
           existingArticles={articles}
         />
       )}
@@ -530,10 +582,15 @@ export const PrivateRoutes: React.FC<PrivateRoutesProps> = ({ userContext, onRef
           isOpen={Boolean(paymentModalDoc)}
           onClose={() => setPaymentModalDoc(null)}
           document={paymentModalDoc}
+          partyType={paymentModalDoc.partyType}
           paymentMethods={paymentMethods}
           onConfirmPayment={async (methodCode: string, paidAmount: number, ref: string) => {
             if (!paymentModalDoc) return;
-            await CashService.createCustomerPayment(paymentModalDoc, methodCode, paidAmount, ref);
+            if (paymentModalDoc.partyType === 'SUPPLIER') {
+              await CashService.createSupplierPayment(paymentModalDoc, methodCode, paidAmount, ref);
+            } else {
+              await CashService.createCustomerPayment(paymentModalDoc, methodCode, paidAmount, ref);
+            }
             await refreshData('documents');
             setPaymentModalDoc(null);
           }}

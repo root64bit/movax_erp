@@ -18,40 +18,21 @@ export const SalesService = {
       return customerId;
     }
 
-    if (keepAsWalkIn) {
-      const { data: walkIn, error: walkInError } = await client
-        .from('customers')
-        .select('id')
-        .eq('number', '1')
-        .limit(1)
-        .maybeSingle();
-
-      if (!walkInError && walkIn?.id) {
-        return walkIn.id;
-      }
-    }
-
-    const cleanName = (customerName || '').trim();
-    if (!cleanName || cleanName.toLowerCase() === 'consumidor final' || cleanName === '1') {
-      const { data: walkIn } = await client
-        .from('customers')
-        .select('id')
-        .eq('number', '1')
-        .limit(1)
-        .maybeSingle();
-
-      if (walkIn?.id) return walkIn.id;
-    }
-
-    const { data: registeredId, error } = await client.rpc('resolve_or_create_operational_customer', {
-      p_name: cleanName || 'Cliente Balcão',
-      p_tax_number: customerNuit?.trim() || null,
-      p_address: customerAddress?.trim() || null,
+    const { data: registeredId, error } = await client.rpc('resolve_or_create_operational_customer_v2', {
+      p_customer_id: isUuid(customerId) ? customerId : null,
+      p_client_name: (customerName || '').trim() || null,
+      p_client_nuit: customerNuit?.trim() || null,
+      p_client_address: customerAddress?.trim() || null,
+      p_keep_as_walk_in: Boolean(keepAsWalkIn),
     });
 
     if (error) {
       logger.error('Failed to resolve or create customer for sale', error, { module: 'SalesService', customerName });
       throw new AppError(error.message || 'Falha ao associar cliente à venda.');
+    }
+
+    if (!registeredId) {
+      throw new AppError('Cliente inválido. Registe pelo menos um cliente no sistema.');
     }
 
     return String(registeredId);
