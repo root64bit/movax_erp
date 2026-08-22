@@ -63,19 +63,19 @@
     <div class="flex items-center space-x-3">
       <div class="bg-blue-600 text-white font-extrabold text-xs px-2.5 py-1 rounded tracking-wider shadow">MOVAX LAB</div>
       <div class="h-4 w-px bg-slate-600"></div>
-      <span class="text-xs font-semibold tracking-wide text-slate-200">Terminal POS · Simulador de Contabilidade & Auditoria</span>
-      <span class="bg-amber-500 text-slate-900 text-[10px] font-black uppercase px-2 py-0.5 rounded-full badge-training">Ambiente de Teste Didático</span>
+      <span class="text-xs font-semibold tracking-wide text-slate-200">Terminal POS · Simulador de Mecânicas de Fraude & Auditoria</span>
+      <span class="bg-amber-500 text-slate-900 text-[10px] font-black uppercase px-2 py-0.5 rounded-full badge-training">Laboratório de Teste</span>
     </div>
 
     <div class="flex items-center space-x-4 text-xs">
       <div class="flex items-center space-x-1.5 text-slate-300">
         <i data-lucide="user" class="w-3.5 h-3.5"></i>
-        <span>Operador: <strong class="text-white">Admin (Auditor Test)</strong></span>
+        <span>Operador: <strong class="text-white">Operador de Caixa (Simulação)</strong></span>
       </div>
       <div class="h-4 w-px bg-slate-600"></div>
       <div class="flex items-center space-x-1.5 text-slate-300">
         <i data-lucide="warehouse" class="w-3.5 h-3.5"></i>
-        <span>Armazém: <strong class="text-white">Armazém Central (01)</strong></span>
+        <span>Armazém: <strong class="text-white">Balcão Principal (01)</strong></span>
       </div>
       <div class="h-4 w-px bg-slate-600"></div>
       <button id="toggleThemeBtn" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition" title="Alternar Modo Escuro">
@@ -128,36 +128,63 @@
   <!-- ===================================================================== -->
   <main id="view-pos" class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-3">
 
-    <!-- Bifurcation / Simulation Control Banner -->
-    <section class="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-3.5 rounded-lg shadow-md border border-slate-700 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center space-x-3">
-        <div class="p-2 rounded-lg bg-slate-800 border border-slate-600 text-blue-400">
-          <i data-lucide="git-fork" class="w-5 h-5"></i>
+    <!-- Interactive Simulation Mode Selector Banner -->
+    <section class="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-3.5 rounded-lg shadow-md border border-slate-700 space-y-3">
+      
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 rounded-lg bg-slate-800 border border-slate-600 text-blue-400">
+            <i data-lucide="cpu" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
+              <span>Modo Operacional da UI (Como o Software Decidiu o Roteamento)</span>
+              <span id="routingStrategyBadge" class="bg-blue-500/30 text-blue-300 border border-blue-400 text-[10px] px-2 py-0.5 rounded uppercase font-mono">Modo Automático / Fluido</span>
+            </div>
+            <div class="text-[11px] text-slate-400">Experimente como o operador usa o POS sem fricção ou como a bifurcação manual funciona.</div>
+          </div>
         </div>
-        <div>
-          <div class="text-xs font-bold uppercase tracking-wider text-slate-300">Simulador de Bifurcação de Registo (Para Estudo de Auditoria)</div>
-          <div class="text-[11px] text-slate-400">Controle para qual base de dados a transação em curso será encaminhada no momento da gravação.</div>
+
+        <!-- Strategy Selector (Smooth Auto vs Manual) -->
+        <div class="flex items-center bg-slate-950/80 p-1 rounded-lg border border-slate-700 space-x-1 text-xs">
+          <button type="button" id="strategy-btn-auto" onclick="setRoutingStrategy('SMOOTH_AUTO')"
+            class="px-3 py-1.5 rounded font-black uppercase transition flex items-center space-x-1.5 bg-blue-600 text-white shadow">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-300"></i>
+            <span>1. Modo Fluido / Automático (Realista)</span>
+          </button>
+          <button type="button" id="strategy-btn-manual" onclick="setRoutingStrategy('MANUAL')"
+            class="px-3 py-1.5 rounded font-black uppercase transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+            <span>2. Comutador Manual Forçado</span>
+          </button>
         </div>
       </div>
 
-      <!-- Channel Toggle -->
-      <div class="flex items-center bg-slate-950/80 p-1 rounded-lg border border-slate-700 space-x-1">
-        <button type="button" id="btn-channel-official" onclick="setRecordingChannel('OFFICIAL')"
-          class="px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 bg-green-600 text-white shadow">
-          <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-          <span>Circuito Oficial (Tabela A)</span>
-        </button>
-        <button type="button" id="btn-channel-shadow" onclick="setRecordingChannel('SHADOW')"
-          class="px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 text-purple-300 hover:text-white hover:bg-purple-900/40">
-          <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
-          <span>Circuito Paralelo / Sombra (Tabela B)</span>
-        </button>
+      <!-- Real-Time Routing Decision HUD -->
+      <div class="bg-slate-950/90 border border-slate-800 rounded-md p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400">Telemetria de Auditoria do POS:</span>
+          <span id="liveRoutingDecision" class="text-purple-400 font-bold bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800">
+            [⚡ Rota Ativa: Dinheiro + Sem NUIT -> Encaminha para TABELA SOMBRA (B)]
+          </span>
+        </div>
+
+        <!-- Manual Toggle Buttons (Visible when MANUAL strategy is picked) -->
+        <div id="manualToggleContainer" class="hidden flex items-center space-x-1">
+          <button type="button" id="btn-channel-official" onclick="setManualChannel('OFFICIAL')"
+            class="px-2.5 py-1 rounded text-[11px] font-black uppercase transition flex items-center space-x-1 bg-green-600 text-white shadow">
+            <i data-lucide="check-circle" class="w-3 h-3"></i>
+            <span>Oficial (A)</span>
+          </button>
+          <button type="button" id="btn-channel-shadow" onclick="setManualChannel('SHADOW')"
+            class="px-2.5 py-1 rounded text-[11px] font-black uppercase transition flex items-center space-x-1 text-purple-300 hover:text-white hover:bg-purple-900/40">
+            <i data-lucide="eye-off" class="w-3 h-3"></i>
+            <span>Sombra (B)</span>
+          </button>
+          <span class="text-slate-500 text-[10px] ml-1">(Alt+S)</span>
+        </div>
       </div>
 
-      <div class="text-[11px] text-amber-300 font-mono bg-amber-950/50 border border-amber-800/60 px-2 py-1 rounded flex items-center space-x-1">
-        <i data-lucide="keyboard" class="w-3.5 h-3.5"></i>
-        <span>Atalho: <strong>Alt + S</strong> para alternar canal</span>
-      </div>
     </section>
 
     <!-- POS Header & Document Type Selector -->
@@ -180,8 +207,8 @@
       <!-- State and Number Indicators -->
       <div class="flex items-center space-x-3 text-xs">
         <div class="flex items-center space-x-1.5 bg-brand-lightBg dark:bg-brand-darkCard px-3 py-1.5 rounded-md border border-brand-border dark:border-brand-darkBorder font-mono">
-          <span class="text-slate-500 font-bold uppercase">Nº Doc Previsto:</span>
-          <span id="docNumberDisplay" class="font-black text-brand-blue dark:text-blue-400">FT-OFICIAL/2026-0001</span>
+          <span class="text-slate-500 font-bold uppercase">Nº Previsto:</span>
+          <span id="docNumberDisplay" class="font-black text-brand-blue dark:text-blue-400">VD-SHADOW/2026-0001</span>
         </div>
         <div id="statusBadge" class="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]">
           ● PREPARAÇÃO
@@ -227,8 +254,11 @@
 
         <!-- Customer NUIT -->
         <div class="col-span-12 sm:col-span-3">
-          <label class="block font-bold uppercase text-slate-600 dark:text-slate-300 mb-1">NUIT:</label>
-          <input type="text" id="clientNuit" value="999999999" placeholder="999999999"
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-bold uppercase text-slate-600 dark:text-slate-300">NUIT Fiscal:</label>
+            <span class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold cursor-pointer" onclick="toggleTestCustomerNuit()">[Alternar NUIT]</span>
+          </div>
+          <input type="text" id="clientNuit" value="999999999" oninput="recalcRoutingDecision()" placeholder="999999999"
             class="w-full bg-white dark:bg-brand-darkCard border border-brand-border dark:border-brand-darkBorder rounded px-2 py-1.5 font-mono text-[#191c1d] dark:text-white focus:outline-blue-600" />
         </div>
 
@@ -411,10 +441,9 @@
     <!-- Action Footer & Shortcuts Bar -->
     <footer class="bg-white dark:bg-brand-darkBg border border-brand-border dark:border-brand-darkBorder p-3 rounded-lg shadow-md flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center space-x-2 text-xs font-bold text-slate-500">
-        <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F2: Gravar</span>
+        <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F2: Gravar Venda</span>
         <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F5: Novo</span>
-        <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F9: Imprimir</span>
-        <span class="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 px-2 py-1 rounded border border-purple-300 dark:border-purple-800">Alt+S: Alternar Canal</span>
+        <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-300 dark:border-slate-700">F9: Imprimir Talão</span>
       </div>
 
       <div class="flex items-center space-x-2">
@@ -686,7 +715,7 @@
 
 
   <!-- ===================================================================== -->
-  <!-- MODAL: TEST RECEIPT PREVIEW -->
+  <!-- MODAL: TEST RECEIPT PREVIEW (DISGUISED VS OFFICIAL) -->
   <!-- ===================================================================== -->
   <div id="receiptModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[90vh]">
@@ -695,7 +724,7 @@
       <div class="bg-brand-navy text-white px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-2">
           <i data-lucide="receipt" class="w-4 h-4 text-blue-400"></i>
-          <span class="font-bold text-xs uppercase tracking-wider" id="receiptModalHeaderTitle">Talão de Venda · Simulação</span>
+          <span class="font-bold text-xs uppercase tracking-wider" id="receiptModalHeaderTitle">Talão de Venda Impresso</span>
         </div>
         <button onclick="closeReceiptModal()" class="text-slate-300 hover:text-white">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -703,19 +732,21 @@
       </div>
 
       <!-- Modal Receipt Body (Thermal 80mm style) -->
-      <div class="p-6 overflow-y-auto flex-1 font-mono text-xs text-slate-800 space-y-4 receipt-paper border-y border-slate-200">
+      <div class="p-6 overflow-y-auto flex-1 font-mono text-xs text-slate-800 space-y-3 receipt-paper border-y border-slate-200">
         
         <div class="text-center space-y-1">
-          <div class="font-extrabold text-sm tracking-widest text-slate-900">MOVAX EMPRESA DEMO, LDA</div>
+          <div class="font-extrabold text-sm tracking-widest text-slate-900">RESTAURANTE & CAFE MOVAX, LDA</div>
           <div class="text-[10px] text-slate-600">Av. 24 de Julho nº 1234, Maputo - Moçambique</div>
           <div class="text-[10px] text-slate-600">NUIT: 400123987 · Tel: +258 84 000 0000</div>
           <div class="my-2 border-b-2 border-dashed border-slate-400"></div>
-          <div id="receiptWatermark" class="bg-amber-100 text-amber-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded">
-            *** DOCUMENTO DE FORMAÇÃO / TREINO ***
+          
+          <div id="receiptWatermark" class="bg-green-100 text-green-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded">
+            *** FACTURA FISCAL CERTIFICADA ***
           </div>
-          <div class="font-bold text-xs uppercase text-slate-900" id="receiptDocTitle">FACTURA SIMULADA</div>
-          <div class="text-[11px] font-bold" id="receiptDocNumber">FT 2026/001</div>
-          <div class="text-[10px] text-slate-600" id="receiptDocDate">Data: 22/08/2026 18:15</div>
+          
+          <div class="font-bold text-xs uppercase text-slate-900" id="receiptDocTitle">FACTURA / RECIBO</div>
+          <div class="text-[11px] font-bold" id="receiptDocNumber">FT-OFICIAL/2026-0001</div>
+          <div class="text-[10px] text-slate-600" id="receiptDocDate">Data: 22/08/2026 19:15</div>
         </div>
 
         <div class="text-[11px] space-y-0.5 border-t border-dashed border-slate-400 pt-2">
@@ -743,17 +774,18 @@
         <div class="space-y-1 text-[11px] pt-1">
           <div class="flex justify-between"><span>Subtotal Ilíquido:</span><span id="receiptGross">0,00 MT</span></div>
           <div class="flex justify-between text-red-600"><span>Descontos:</span><span id="receiptDiscounts">0,00 MT</span></div>
-          <div class="flex justify-between"><span>IVA (16%):</span><span id="receiptTax">0,00 MT</span></div>
+          <div class="flex justify-between"><span>IVA Incluído (16%):</span><span id="receiptTax">0,00 MT</span></div>
           <div class="flex justify-between font-black text-sm text-slate-900 border-t border-slate-400 pt-1">
             <span>TOTAL PAGO:</span><span id="receiptTotal">0,00 MT</span>
           </div>
         </div>
 
-        <div class="text-center text-[9px] text-slate-500 space-y-1 pt-3 border-t border-dashed border-slate-300">
-          <div>Obrigado pela preferência!</div>
-          <div class="font-bold">MOVAX ERP/POS SOFTWARE V2</div>
-          <div id="receiptFooterAuth">Processado por Programa Certificado nº 000/AT/2026</div>
+        <!-- Security Block / Hash (Differences between Official and Disguised Shadow) -->
+        <div id="receiptFiscalSecurityBlock" class="text-center text-[9px] text-slate-600 space-y-1 pt-3 border-t border-dashed border-slate-300">
+          <div class="font-mono font-bold text-[9px] text-slate-700" id="receiptHashLine">x8K2-Processado por programa certificado nº 000/AT/2026</div>
+          <div class="text-[8px] text-slate-500" id="receiptFiscalCertInfo">Documento emitido ao abrigo do regime geral do IVA</div>
         </div>
+
       </div>
 
       <!-- Modal Footer -->
@@ -795,8 +827,11 @@
     let seqOficial = 0;
     let seqOculta = 0;
 
-    // POS State
-    let currentChannel = 'OFFICIAL'; // 'OFFICIAL' | 'SHADOW'
+    // POS Routing State
+    let routingStrategy = 'SMOOTH_AUTO'; // 'SMOOTH_AUTO' | 'MANUAL'
+    let manualChannel = 'OFFICIAL';       // 'OFFICIAL' | 'SHADOW'
+    let resolvedChannel = 'SHADOW';      // Currently evaluated target channel
+
     let currentDocType = 'CUSTOMER_INVOICE';
     let docStatus = 'PREPARATION';
     let cartItems = [];
@@ -812,7 +847,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
       carregarDoStorage();
-      updatePreviewDocNumber();
+      recalcRoutingDecision();
       renderAllReports();
       setupKeyboardShortcuts();
       lucide.createIcons();
@@ -847,36 +882,124 @@
       lucide.createIcons();
     }
 
-    // Channel Bifurcation Selector
-    function setRecordingChannel(channel) {
-      currentChannel = channel;
+    // Strategy Selection (Smooth Auto vs Manual)
+    function setRoutingStrategy(strategy) {
+      routingStrategy = strategy;
+      const btnAuto = document.getElementById('strategy-btn-auto');
+      const btnManual = document.getElementById('strategy-btn-manual');
+      const badge = document.getElementById('routingStrategyBadge');
+      const manualControls = document.getElementById('manualToggleContainer');
+
+      if (strategy === 'SMOOTH_AUTO') {
+        btnAuto.className = 'px-3 py-1.5 rounded font-black uppercase transition flex items-center space-x-1.5 bg-blue-600 text-white shadow';
+        btnManual.className = 'px-3 py-1.5 rounded font-black uppercase transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-slate-800';
+        badge.innerText = 'Modo Fluido / Automático (Realista)';
+        badge.className = 'bg-blue-500/30 text-blue-300 border border-blue-400 text-[10px] px-2 py-0.5 rounded uppercase font-mono';
+        manualControls.classList.add('hidden');
+      } else {
+        btnManual.className = 'px-3 py-1.5 rounded font-black uppercase transition flex items-center space-x-1.5 bg-purple-600 text-white shadow';
+        btnAuto.className = 'px-3 py-1.5 rounded font-black uppercase transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-slate-800';
+        badge.innerText = 'Comutador Manual Forçado';
+        badge.className = 'bg-purple-500/30 text-purple-300 border border-purple-400 text-[10px] px-2 py-0.5 rounded uppercase font-mono';
+        manualControls.classList.remove('hidden');
+      }
+
+      recalcRoutingDecision();
+    }
+
+    function setManualChannel(channel) {
+      manualChannel = channel;
       const btnOficial = document.getElementById('btn-channel-official');
       const btnShadow = document.getElementById('btn-channel-shadow');
 
       if (channel === 'OFFICIAL') {
-        btnOficial.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 bg-green-600 text-white shadow';
-        btnShadow.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 text-purple-300 hover:text-white hover:bg-purple-900/40';
+        btnOficial.className = 'px-2.5 py-1 rounded text-[11px] font-black uppercase transition flex items-center space-x-1 bg-green-600 text-white shadow';
+        btnShadow.className = 'px-2.5 py-1 rounded text-[11px] font-black uppercase transition flex items-center space-x-1 text-purple-300 hover:text-white hover:bg-purple-900/40';
       } else {
-        btnShadow.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 bg-purple-600 text-white shadow badge-shadow-glow';
-        btnOficial.className = 'px-3 py-1.5 rounded text-xs font-black uppercase transition flex items-center space-x-1.5 text-green-300 hover:text-white hover:bg-green-900/40';
+        btnShadow.className = 'px-2.5 py-1 rounded text-[11px] font-black uppercase transition flex items-center space-x-1 bg-purple-600 text-white shadow badge-shadow-glow';
+        btnOficial.className = 'px-2.5 py-1 rounded text-[11px] font-black uppercase transition flex items-center space-x-1 text-green-300 hover:text-white hover:bg-green-900/40';
       }
+      recalcRoutingDecision();
+    }
+
+    function toggleManualChannel() {
+      if (routingStrategy === 'MANUAL') {
+        setManualChannel(manualChannel === 'OFFICIAL' ? 'SHADOW' : 'OFFICIAL');
+      } else {
+        // Switch to manual mode on hotkey
+        setRoutingStrategy('MANUAL');
+        setManualChannel('SHADOW');
+      }
+    }
+
+    // Dynamic Decision Evaluation (Smooth Engine)
+    function recalcRoutingDecision() {
+      const paymentMode = document.getElementById('paymentMethod').value;
+      const nuit = (document.getElementById('clientNuit').value || '').trim();
+      const decisionHUD = document.getElementById('liveRoutingDecision');
+
+      if (routingStrategy === 'SMOOTH_AUTO') {
+        // Real-world rule:
+        // Electronic payments (POS/Cartão, M-Pesa, etc.) OR specific corporate NUIT (not generic 999999999) -> Must go to Official (A)
+        // Cash (Dinheiro) AND Generic NUIT (999999999 / Final) -> Diverted invisibly to Shadow (B)
+        const isElectronic = (paymentMode === 'POS' || paymentMode === 'MPESA' || paymentMode === 'EMOLA' || paymentMode === 'CREDIT');
+        const hasFormalNuit = (nuit !== '' && nuit !== '999999999');
+
+        if (isElectronic || hasFormalNuit) {
+          resolvedChannel = 'OFFICIAL';
+          const reason = isElectronic ? `Pagamento Eletrónico (${paymentMode})` : `NUIT Formal Solicitado (${nuit})`;
+          decisionHUD.innerHTML = `
+            <span class="text-green-400">[✓ Rota Automática: <strong class="underline">${reason}</strong> -> Base Oficial (Tabela A)]</span>
+          `;
+          decisionHUD.className = 'text-green-400 font-bold bg-green-950/60 px-2 py-0.5 rounded border border-green-800';
+        } else {
+          resolvedChannel = 'SHADOW';
+          decisionHUD.innerHTML = `
+            <span class="text-purple-300">[⚡ Rota Automática Invisível: <strong>Dinheiro + Sem NUIT</strong> -> Base Sombra (Tabela B)]</span>
+          `;
+          decisionHUD.className = 'text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800';
+        }
+      } else {
+        resolvedChannel = manualChannel;
+        if (resolvedChannel === 'OFFICIAL') {
+          decisionHUD.innerHTML = `
+            <span class="text-green-400">[🔒 Rota Manual Forçada: Canal Oficial (Tabela A)]</span>
+          `;
+          decisionHUD.className = 'text-green-400 font-bold bg-green-950/60 px-2 py-0.5 rounded border border-green-800';
+        } else {
+          decisionHUD.innerHTML = `
+            <span class="text-purple-300">[🕵️ Rota Manual Forçada: Canal Sombra / Oculto (Tabela B)]</span>
+          `;
+          decisionHUD.className = 'text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800';
+        }
+      }
+
       updatePreviewDocNumber();
     }
 
-    function toggleRecordingChannel() {
-      setRecordingChannel(currentChannel === 'OFFICIAL' ? 'SHADOW' : 'OFFICIAL');
+    function toggleTestCustomerNuit() {
+      const nuitInput = document.getElementById('clientNuit');
+      const nameInput = document.getElementById('clientName');
+      if (nuitInput.value === '999999999') {
+        nuitInput.value = '400555666';
+        nameInput.value = 'Empresa Alpha Moçambique, Lda';
+      } else {
+        nuitInput.value = '999999999';
+        nameInput.value = 'Cliente Pontual / Final';
+      }
+      recalcRoutingDecision();
     }
 
     function updatePreviewDocNumber() {
       const display = document.getElementById('docNumberDisplay');
-      if (currentChannel === 'OFFICIAL') {
+      if (resolvedChannel === 'OFFICIAL') {
         const nextNum = seqOficial + 1;
         const prefix = currentDocType === 'CUSTOMER_INVOICE' ? 'FT-OFICIAL' : currentDocType === 'CASH_SALE' ? 'VD-OFICIAL' : 'GR-OFICIAL';
         display.innerText = `${prefix}/2026-${String(nextNum).padStart(4, '0')}`;
-        display.className = 'font-black text-brand-blue dark:text-blue-400';
+        display.className = 'font-black text-green-700 dark:text-green-400';
       } else {
         const nextNum = seqOculta + 1;
-        display.innerText = `VD-SHADOW/2026-${String(nextNum).padStart(4, '0')}`;
+        display.innerText = `TC-PARALELO/2026-${String(nextNum).padStart(4, '0')}`;
         display.className = 'font-black text-purple-600 dark:text-purple-400';
       }
     }
@@ -903,13 +1026,14 @@
         btnGuide.className = 'px-4 py-2 rounded-md font-extrabold text-xs uppercase transition shadow-md bg-brand-navy text-white';
         headerTitle.innerText = 'Artigos · Guia de Remessa';
       }
-      updatePreviewDocNumber();
+      recalcRoutingDecision();
     }
 
     // Customer Lookup
     function onCustomerCodeChange(code) {
       const match = sampleCustomers.find(c => c.code.toLowerCase() === code.trim().toLowerCase());
       if (match) setCustomerFields(match);
+      recalcRoutingDecision();
     }
 
     function filterCustomerDropdown(query) {
@@ -939,6 +1063,7 @@
       const customer = sampleCustomers.find(c => c.id === id);
       if (customer) setCustomerFields(customer);
       document.getElementById('customerSuggestions').classList.add('hidden');
+      recalcRoutingDecision();
     }
 
     function setCustomerFields(c) {
@@ -1131,14 +1256,17 @@
       } else if (mode === 'CREDIT') {
         refInput.placeholder = 'Acordo de Crédito 30D';
       }
+      recalcRoutingDecision();
     }
 
-    // Confirm Sale with Dual-Ledger Bifurcation
+    // Confirm Sale with Dual-Ledger Bifurcation & Thermal Disguise
     function confirmSale(openPrintPreview) {
       if (cartItems.length === 0) {
         alert('Adicione pelo menos 1 artigo ao carrinho para confirmar o registo.');
         return;
       }
+
+      recalcRoutingDecision();
 
       const totals = calculateTotals();
       const clientName = document.getElementById('clientName').value;
@@ -1148,9 +1276,9 @@
       const itemsCopy = JSON.parse(JSON.stringify(cartItems));
 
       let docNum = '';
-      let recordOrigin = currentChannel;
+      const isOfficial = (resolvedChannel === 'OFFICIAL');
 
-      if (currentChannel === 'OFFICIAL') {
+      if (isOfficial) {
         seqOficial += 1;
         const prefix = currentDocType === 'CUSTOMER_INVOICE' ? 'FT-OFICIAL' : currentDocType === 'CASH_SALE' ? 'VD-OFICIAL' : 'GR-OFICIAL';
         docNum = `${prefix}/2026-${String(seqOficial).padStart(4, '0')}`;
@@ -1171,7 +1299,7 @@
         });
       } else {
         seqOculta += 1;
-        docNum = `VD-SHADOW/2026-${String(seqOculta).padStart(4, '0')}`;
+        docNum = `TC-PARALELO/2026-${String(seqOculta).padStart(4, '0')}`;
         
         dbOculta.push({
           id: 'shd-' + Date.now(),
@@ -1192,33 +1320,37 @@
       guardarNoStorage();
       renderAllReports();
 
-      // UI Feedback
+      // UI Status Badge Update
       document.getElementById('docNumberDisplay').innerText = docNum;
       const badge = document.getElementById('statusBadge');
-      if (currentChannel === 'OFFICIAL') {
+      if (isOfficial) {
         badge.className = 'bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-300 border border-green-300 dark:border-green-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]';
         badge.innerText = '● GRAVADO NA TABELA OFICIAL (A)';
       } else {
         badge.className = 'bg-purple-100 text-purple-900 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-300 dark:border-purple-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]';
-        badge.innerText = '● DESVIADO PARA TABELA SOMBRA (B)';
+        badge.innerText = '● DESVIADO SILENCIOSAMENTE PARA SOMBRA (B)';
       }
 
-      // Populate Receipt Modal
-      document.getElementById('receiptDocTitle').innerText = currentChannel === 'OFFICIAL' ? (currentDocType === 'CUSTOMER_INVOICE' ? 'FACTURA FISCAL' : 'VENDA A DINHEIRO') : 'TALÃO NÃO FISCAL (MODO PARALELO)';
+      // Populate Receipt Modal (Demonstrating the subtle receipt disguise)
       document.getElementById('receiptDocNumber').innerText = docNum;
       document.getElementById('receiptDocDate').innerText = 'Data: ' + dateStr;
       document.getElementById('receiptClientName').innerText = clientName;
       document.getElementById('receiptClientNuit').innerText = clientNuit;
       document.getElementById('receiptPaymentMode').innerText = paymentMode;
 
-      if (currentChannel === 'SHADOW') {
-        document.getElementById('receiptWatermark').innerText = '*** REGISTO OCULTO (TABELA B) ***';
-        document.getElementById('receiptWatermark').className = 'bg-purple-100 text-purple-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded';
-        document.getElementById('receiptFooterAuth').innerText = 'Documento Interno de Conferência (Não Transmitido ao Fisco)';
-      } else {
-        document.getElementById('receiptWatermark').innerText = '*** DOCUMENTO FISCAL OFICIAL ***';
+      if (isOfficial) {
+        document.getElementById('receiptWatermark').innerText = '*** FACTURA FISCAL CERTIFICADA ***';
         document.getElementById('receiptWatermark').className = 'bg-green-100 text-green-900 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded';
-        document.getElementById('receiptFooterAuth').innerText = 'Processado por Programa Certificado nº 000/AT/2026';
+        document.getElementById('receiptDocTitle').innerText = currentDocType === 'CUSTOMER_INVOICE' ? 'FACTURA FISCAL' : 'VENDA A DINHEIRO';
+        document.getElementById('receiptHashLine').innerText = 'x8K2-Processado por programa certificado nº 000/AT/2026';
+        document.getElementById('receiptFiscalCertInfo').innerText = 'Documento emitido com assinatura digital e integrado no SAF-T';
+      } else {
+        // Disguised thermal receipt
+        document.getElementById('receiptWatermark').innerText = '*** TALÃO DE CONFERÊNCIA / CONSULTA ***';
+        document.getElementById('receiptWatermark').className = 'bg-slate-100 text-slate-800 font-extrabold text-[10px] py-0.5 uppercase tracking-wide rounded';
+        document.getElementById('receiptDocTitle').innerText = 'TALÃO DE CONFERÊNCIA';
+        document.getElementById('receiptHashLine').innerText = 'Obrigado pela sua visita! Volte sempre.';
+        document.getElementById('receiptFiscalCertInfo').innerText = 'Documento informativo para controlo interno (Sem valor de fatura fiscal)';
       }
 
       const receiptTbody = document.getElementById('receiptTableBody');
@@ -1239,8 +1371,8 @@
       if (openPrintPreview) {
         document.getElementById('receiptModal').classList.remove('hidden');
       } else {
-        const canalDesc = currentChannel === 'OFFICIAL' ? 'Tabela Oficial (A)' : 'Tabela Oculta (B)';
-        alert(`Transação gravada com sucesso no canal: ${canalDesc}\nNº Documento: ${docNum}\nConsulte o 'Relatório Sombra' para ver a consolidação real.`);
+        const canalDesc = isOfficial ? 'Tabela Oficial (A) [Declarado]' : 'Tabela Oculta (B) [Caixa 2 Sombra]';
+        alert(`Transação gravada com sucesso!\nCanal: ${canalDesc}\nNº Documento: ${docNum}\n\nAbra a aba "Relatório Sombra" para verificar a consolidação.`);
       }
     }
 
@@ -1251,7 +1383,7 @@
     function resetPosForm() {
       cartItems = [];
       docStatus = 'PREPARATION';
-      updatePreviewDocNumber();
+      recalcRoutingDecision();
       const badge = document.getElementById('statusBadge');
       badge.className = 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-black px-3 py-1.5 rounded-md uppercase text-[11px]';
       badge.innerText = '● PREPARAÇÃO';
@@ -1397,7 +1529,7 @@
           date: '22/08/2026 09:15:20',
           clientName: 'Cliente Pontual / Final',
           clientNuit: '999999999',
-          paymentMode: 'Dinheiro',
+          paymentMode: 'POS / Cartão',
           items: [{ code: 'ART001', description: 'Café Expresso', qty: 2, unitPrice: 60.0, discount: 0, iva: 16, net: 120.0, tax: 19.20, total: 139.20 }],
           gross: 120.0,
           tax: 19.20,
@@ -1411,7 +1543,7 @@
           date: '22/08/2026 11:40:12',
           clientName: 'Empresa Alpha Moçambique, Lda',
           clientNuit: '400555666',
-          paymentMode: 'POS / Cartão',
+          paymentMode: 'Dinheiro',
           items: [{ code: 'ART005', description: 'Resma de Papel A4 80g (500fls)', qty: 5, unitPrice: 350.0, discount: 0, iva: 16, net: 1750.0, tax: 280.0, total: 2030.0 }],
           gross: 1750.0,
           tax: 280.0,
@@ -1437,7 +1569,7 @@
       dbOculta = [
         {
           id: 'shd-1',
-          docNum: 'VD-SHADOW/2026-0001',
+          docNum: 'TC-PARALELO/2026-0001',
           docType: 'SHADOW_SALE',
           date: '22/08/2026 10:02:18',
           clientName: 'Cliente Pontual',
@@ -1451,11 +1583,11 @@
         },
         {
           id: 'shd-2',
-          docNum: 'VD-SHADOW/2026-0002',
+          docNum: 'TC-PARALELO/2026-0002',
           docType: 'SHADOW_SALE',
           date: '22/08/2026 12:25:44',
-          clientName: 'Dr. João Manuel Baptista',
-          clientNuit: '102938475',
+          clientName: 'Cliente Pontual',
+          clientNuit: '999999999',
           paymentMode: 'Dinheiro',
           items: [{ code: 'ART001', description: 'Computador Portátil Core i5 16GB', qty: 1, unitPrice: 45000.0, discount: 0, iva: 16, net: 45000.0, tax: 7200.0, total: 52200.0 }],
           gross: 45000.0,
@@ -1465,10 +1597,10 @@
         },
         {
           id: 'shd-3',
-          docNum: 'VD-SHADOW/2026-0003',
+          docNum: 'TC-PARALELO/2026-0003',
           docType: 'SHADOW_SALE',
           date: '22/08/2026 16:50:31',
-          clientName: 'Cliente Final',
+          clientName: 'Cliente Pontual',
           clientNuit: '999999999',
           paymentMode: 'Dinheiro',
           items: [{ code: 'ART004', description: 'Monitor LED 24 Polegadas Full HD', qty: 2, unitPrice: 11500.0, discount: 0, iva: 16, net: 23000.0, tax: 3680.0, total: 26680.0 }],
@@ -1588,7 +1720,7 @@
           closeReceiptModal();
         } else if (e.altKey && (e.key === 's' || e.key === 'S')) {
           e.preventDefault();
-          toggleRecordingChannel();
+          toggleManualChannel();
         }
       });
     }
