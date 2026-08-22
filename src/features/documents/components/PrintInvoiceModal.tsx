@@ -1,8 +1,55 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { CompanyProfile, SaleInvoice, BankAccount } from '@/shared/types/domain.types';
 import { calculateDocumentLine, roundMoney } from '@/lib/documentCalculations';
 import { PLATFORM_PRODUCT_NAME } from '@/shared/lib/branding';
+import { requireSupabase } from '@/integrations/supabase/client';
+
+export const MOZAMBIQUE_BANK_PRESETS = [
+  'Millennium BIM',
+  'BCI',
+  'Standard Bank',
+  'Moza Banco',
+  'Absa Bank',
+  'FNB Moçambique',
+  'Nedbank',
+  'M-Pesa',
+  'E-Mola',
+  'Outro (Personalizado)',
+];
+
+export function extractCleanNotes(notes?: string): string {
+  if (!notes) return '';
+  return notes.replace(/\[CLIENTE:[^\]]*\]\s*/gi, '').trim();
+}
+
+export function formatDocumentValidity(
+  validityText: string,
+  documentDateStr?: string,
+  isQuotation = false
+): string {
+  if (!validityText || !validityText.trim()) {
+    if (!isQuotation) return 'Pronto pagamento';
+    validityText = '15 dias';
+  }
+  const clean = validityText.trim();
+  const match = clean.match(/^(\d+)\s*(?:dias?|days?)?$/i);
+  if (match && documentDateStr) {
+    const days = parseInt(match[1], 10);
+    const docDate = new Date(documentDateStr);
+    if (!isNaN(docDate.getTime())) {
+      const expDate = new Date(docDate);
+      expDate.setDate(expDate.getDate() + days);
+      const expFormatted = expDate.toLocaleDateString('pt-PT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+      return `${days} dias (Válida até ${expFormatted})`;
+    }
+  }
+  return clean;
+}
 
 interface PrintInvoiceModalProps {
   isOpen: boolean;
@@ -61,35 +108,61 @@ const formatWholeMeticalValue = (value: number): string =>
 
 const formatWholeMZN = (value: number): string => `${formatWholeMeticalValue(value)} MZN`;
 
-
-const resolveBankAccounts = (company: CompanyProfile, invoice?: SaleInvoice | null) => {
-  if (company.bankAccounts?.length) return company.bankAccounts;
-  return [
-    { bankName: 'BCI', account: invoice?.bankAccountBci || company.bankBciAccount || '', nib: invoice?.bankNibBci || company.bankBciNib || '' },
-    { bankName: 'Millennium BIM', account: invoice?.bankAccountBim || company.bankBimAccount || '', nib: invoice?.bankNibBim || company.bankBimNib || '' },
-  ].filter((bank) => bank.account || bank.nib);
+const resolveBankAccounts = (company: CompanyProfile, invoice?: SaleInvoice | null): BankAccount[] => {
+  if (company.bankAccounts && company.bankAccounts.length > 0) {
+    return company.bankAccounts;
+  }
+  const list: BankAccount[] = [];
+  if (invoice?.bankAccountBim || company.bankBimAccount || invoice?.bankNibBim || company.bankBimNib) {
+    list.push({
+      bankName: 'Millennium BIM',
+      account: invoice?.bankAccountBim || company.bankBimAccount || '',
+      nib: invoice?.bankNibBim || company.bankBimNib || '',
+    });
+  }
+  if (invoice?.bankAccountBci || company.bankBciAccount || invoice?.bankNibBci || company.bankBciNib) {
+    list.push({
+      bankName: 'BCI',
+      account: invoice?.bankAccountBci || company.bankBciAccount || '',
+      nib: invoice?.bankNibBci || company.bankBciNib || '',
+    });
+  }
+  if (list.length === 0) {
+    return [
+      { bankName: 'Millennium BIM', account: '', nib: '' },
+      { bankName: 'BCI', account: '', nib: '' },
+    ];
+  }
+  return list;
 };
 
 export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, onClose, invoice, company }) => {
   // Editable Bank & Document Details
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(
-    resolveBankAccounts(company, invoice),
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() =>
+    resolveBankAccounts(company, invoice)
   );
-  const [validityDays, setValidityDays] = useState(invoice?.validityDays || company.quotationValidityDays || (invoice?.documentTypeCode === 'CUSTOMER_QUOTATION' ? '7 dias' : 'Pronto pag.'));
-  const [customNotes, setCustomNotes] = useState(invoice?.notes || company.quotationDefaultNotes || '');
+  const isQuotation = invoice?.documentTypeCode === 'CUSTOMER_QUOTATION';
+  const initialValidity = invoice?.validityDays || company.quotationValidityDays || (isQuotation ? '15 dias' : 'Pronto pag.');
+  const [validityDays, setValidityDays] = useState(initialValidity);
+  const [customNotes, setCustomNotes] = useState(() => extractCleanNotes(invoice?.notes) || company.quotationDefaultNotes || '');
   const [showEditPanel, setShowEditPanel] = useState(false);
+  const [isSavingDefaults, setIsSavingDefaults] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     if (!isOpen || !invoice) return;
     setBankAccounts(resolveBankAccounts(company, invoice));
-    setValidityDays(invoice.validityDays || company.quotationValidityDays || (invoice.documentTypeCode === 'CUSTOMER_QUOTATION' ? '7 dias' : 'Pronto pag.'));
-    setCustomNotes(invoice.notes || company.quotationDefaultNotes || '');
+    const v = invoice.validityDays || company.quotationValidityDays || (invoice.documentTypeCode === 'CUSTOMER_QUOTATION' ? '15 dias' : 'Pronto pag.');
+    setValidityDays(v);
+    setCustomNotes(extractCleanNotes(invoice.notes) || company.quotationDefaultNotes || '');
     setShowEditPanel(false);
+    setSaveSuccess(false);
+    setSaveError('');
   }, [company, invoice, isOpen]);
 
   if (!isOpen || !invoice) return null;
 
-  const isQuotation = invoice.documentTypeCode === 'CUSTOMER_QUOTATION';
   const docTitleName = isQuotation
     ? 'Proposta de Cotação'
     : invoice.documentTypeCode === 'CUSTOMER_DELIVERY_NOTE'
@@ -103,6 +176,57 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
     month: 'numeric',
     year: 'numeric',
   });
+
+  const formattedValidity = formatDocumentValidity(validityDays, invoice.date, isQuotation);
+
+  const handleAddBankAccount = () => {
+    setBankAccounts((prev) => [...prev, { bankName: 'Standard Bank', account: '', nib: '' }]);
+  };
+
+  const handleRemoveBankAccount = (index: number) => {
+    setBankAccounts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateBankAccount = (index: number, field: keyof BankAccount, val: string) => {
+    setBankAccounts((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: val };
+      return updated;
+    });
+  };
+
+  const handleSaveCompanyDefaults = async () => {
+    setIsSavingDefaults(true);
+    setSaveError('');
+    try {
+      const client = requireSupabase();
+      const bim = bankAccounts.find((b) => b.bankName.toLowerCase().includes('bim'));
+      const bci = bankAccounts.find((b) => b.bankName.toLowerCase().includes('bci'));
+
+      if (company.id) {
+        const { error } = await client
+          .from('companies')
+          .update({
+            bank_bim_account: bim?.account?.trim() || null,
+            bank_bim_nib: bim?.nib?.trim() || null,
+            bank_bci_account: bci?.account?.trim() || null,
+            bank_bci_nib: bci?.nib?.trim() || null,
+            quotation_validity_days: validityDays.trim() || '15 dias',
+            quotation_default_notes: customNotes.trim() || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', company.id);
+
+        if (error) throw error;
+      }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
+    } catch (err: any) {
+      setSaveError(err.message || 'Falha ao guardar predefinições da empresa.');
+    } finally {
+      setIsSavingDefaults(false);
+    }
+  };
 
   // Keep the exact stored values for calculations, while the fiscal print view
   // presents monetary amounts as whole meticais, as required by the business.
@@ -228,59 +352,182 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
 
         {/* Inline Admin Edit Panel for Quotation Bank Account & Notes */}
         {showEditPanel && (
-          <div className="bg-amber-50 dark:bg-[#1a2332] p-4 border-b border-amber-200 text-xs font-sans space-y-3 print:hidden">
-            <div className="flex justify-between items-center">
-              <h4 className="font-extrabold uppercase text-[#003366] dark:text-[#a7c8ff] flex items-center">
-                <span className="material-symbols-outlined text-sm mr-1">account_balance</span>
-                Personalização de Dados Bancários, Validade e Observações da Cotação
-              </h4>
-              <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold">
-                As alterações aplicam-se imediatamente no impresso abaixo.
+          <div className="bg-slate-50 dark:bg-[#1a2332] p-5 border-b border-slate-300 dark:border-slate-700 text-xs font-sans space-y-4 print:hidden shadow-inner">
+            <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+              <div className="flex items-center space-x-2">
+                <span className="material-symbols-outlined text-[#003366] dark:text-[#a7c8ff]">account_balance</span>
+                <h4 className="font-extrabold uppercase text-sm text-[#003366] dark:text-[#a7c8ff]">
+                  Personalização de Dados Bancários, Validade e Observações
+                </h4>
+              </div>
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">sync</span>
+                As alterações refletem-se em tempo real no impresso abaixo
               </span>
             </div>
-            <div className="grid grid-cols-12 gap-3">
-              {bankAccounts.map((bank, idx) => (
-                <React.Fragment key={idx}>
-                  <div className="col-span-12 sm:col-span-3">
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Conta {bank.bankName}</label>
-                    <input
-                      type="text"
-                      value={bank.account}
-                      onChange={(e) => { const updated = [...bankAccounts]; updated[idx] = {...updated[idx], account: e.target.value}; setBankAccounts(updated); }}
-                      className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-mono text-xs"
-                    />
+
+            {saveSuccess && (
+              <div className="p-2.5 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                Predefinições da empresa guardadas com sucesso na base de dados!
+              </div>
+            )}
+
+            {saveError && (
+              <div className="p-2.5 bg-red-100 dark:bg-red-950/60 border border-red-400 dark:border-red-700 text-red-900 dark:text-red-200 rounded font-bold">
+                ⚠️ {saveError}
+              </div>
+            )}
+
+            {/* Bank Accounts Section */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="block font-black text-slate-700 dark:text-slate-200 uppercase text-[11px]">
+                  Contas Bancárias para Depósito / Transferência ({bankAccounts.length})
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddBankAccount}
+                  className="px-2.5 py-1 bg-[#003366] text-white rounded font-bold text-[11px] hover:bg-blue-900 transition flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-xs">add</span>
+                  <span>Adicionar Banco</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {bankAccounts.map((bank, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-white dark:bg-[#282c2e] p-2.5 rounded-lg border border-slate-300 dark:border-slate-600 shadow-xs">
+                    <div className="col-span-12 sm:col-span-4">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Banco</label>
+                      <div className="flex gap-1">
+                        <select
+                          value={MOZAMBIQUE_BANK_PRESETS.includes(bank.bankName) ? bank.bankName : 'Outro (Personalizado)'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'Outro (Personalizado)') {
+                              handleUpdateBankAccount(idx, 'bankName', 'Novo Banco');
+                            } else {
+                              handleUpdateBankAccount(idx, 'bankName', val);
+                            }
+                          }}
+                          className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#1f2325] text-xs font-bold font-sans"
+                        >
+                          {MOZAMBIQUE_BANK_PRESETS.map((p) => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="col-span-12 sm:col-span-4">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Nº de Conta</label>
+                      <input
+                        type="text"
+                        placeholder="ex: 12345678901"
+                        value={bank.account}
+                        onChange={(e) => handleUpdateBankAccount(idx, 'account', e.target.value)}
+                        className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1f2325] font-mono text-xs font-bold"
+                      />
+                    </div>
+
+                    <div className="col-span-10 sm:col-span-3">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">NIB (21 dígitos)</label>
+                      <input
+                        type="text"
+                        placeholder="ex: 000100001234567890123"
+                        value={bank.nib}
+                        onChange={(e) => handleUpdateBankAccount(idx, 'nib', e.target.value)}
+                        className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1f2325] font-mono text-xs"
+                      />
+                    </div>
+
+                    <div className="col-span-2 sm:col-span-1 text-center pt-3">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveBankAccount(idx)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition cursor-pointer"
+                        title="Remover Conta Bancária"
+                      >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="col-span-12 sm:col-span-3">
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">NIB {bank.bankName}</label>
-                    <input
-                      type="text"
-                      value={bank.nib}
-                      onChange={(e) => { const updated = [...bankAccounts]; updated[idx] = {...updated[idx], nib: e.target.value}; setBankAccounts(updated); }}
-                      className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-mono text-xs"
-                    />
-                  </div>
-                </React.Fragment>
-              ))}
-              <div className="col-span-12 sm:col-span-4">
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Validade / Condição</label>
+                ))}
+              </div>
+            </div>
+
+            {/* Validity & Notes Section */}
+            <div className="grid grid-cols-12 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+              <div className="col-span-12 md:col-span-5 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase text-[11px]">
+                    Validade da Proposta / Condição
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={validityDays}
                   onChange={(e) => setValidityDays(e.target.value)}
-                  placeholder="ex: 7 dias, 15 dias"
-                  className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-sans text-xs"
+                  placeholder="ex: 15 dias, 30 dias"
+                  className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-bold text-xs"
                 />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {['7 dias', '15 dias', '30 dias', 'Pronto pag.'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setValidityDays(preset)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition ${
+                        validityDays === preset
+                          ? 'bg-[#003366] text-white'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                {formattedValidity && (
+                  <p className="text-[10px] font-mono text-[#006e25] dark:text-green-400 font-bold pt-1">
+                    No documento: {formattedValidity}
+                  </p>
+                )}
               </div>
-              <div className="col-span-12 sm:col-span-8">
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Observações Adicionais</label>
-                <input
-                  type="text"
+
+              <div className="col-span-12 md:col-span-7 space-y-1.5">
+                <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase text-[11px]">
+                  Observações / Condições Comerciais
+                </label>
+                <textarea
+                  rows={3}
                   value={customNotes}
                   onChange={(e) => setCustomNotes(e.target.value)}
-                  placeholder="ex: Preços sujeitos a confirmação de stock."
-                  className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-sans text-xs"
+                  placeholder="ex: Preços incluem montagem. Prazo de entrega: Imediato salvo venda."
+                  className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-sans text-xs focus-ring"
                 />
               </div>
+            </div>
+
+            {/* Actions Bar */}
+            <div className="flex flex-wrap justify-between items-center gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                disabled={isSavingDefaults}
+                onClick={handleSaveCompanyDefaults}
+                className="px-4 py-2 bg-[#006e25] text-white rounded font-bold text-xs uppercase hover:bg-green-700 transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-sm">save</span>
+                <span>{isSavingDefaults ? 'A guardar…' : 'Guardar como Predefinição da Empresa'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowEditPanel(false)}
+                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:underline text-xs font-bold cursor-pointer"
+              >
+                Fechar Painel de Edição
+              </button>
             </div>
           </div>
         )}
@@ -314,17 +561,23 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
               </div>
 
               <div className="pt-1">
-                {bankAccounts.length > 0 && <p className="font-bold">Contas bancárias: {company.name}</p>}
-                <div className="grid grid-cols-12 gap-1 text-[10px] print:text-[9px]">
-                  {bankAccounts.map((bank, idx) => (
-                    <React.Fragment key={idx}>
-                      <span className="col-span-3 font-bold">{bank.bankName}</span>
-                      <span className="col-span-4 font-mono font-bold">{bank.account}</span>
-                      <span className="col-span-1 font-bold">NIB</span>
-                      <span className="col-span-4 font-mono">{bank.nib}</span>
-                    </React.Fragment>
-                  ))}
-                </div>
+                {bankAccounts.filter((b) => b.account?.trim() || b.nib?.trim()).length > 0 && (
+                  <>
+                    <p className="font-bold">Contas bancárias: {company.name}</p>
+                    <div className="grid grid-cols-12 gap-1 text-[10px] print:text-[9px]">
+                      {bankAccounts
+                        .filter((b) => b.account?.trim() || b.nib?.trim())
+                        .map((bank, idx) => (
+                          <React.Fragment key={idx}>
+                            <span className="col-span-3 font-bold">{bank.bankName}</span>
+                            <span className="col-span-4 font-mono font-bold">{bank.account || '-'}</span>
+                            <span className="col-span-1 font-bold">NIB</span>
+                            <span className="col-span-4 font-mono">{bank.nib || '-'}</span>
+                          </React.Fragment>
+                        ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -346,7 +599,7 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
               <p className="text-[11px] print:text-[10px]">Data doc.: {formattedDate}</p>
             </div>
             <div className="text-right text-[11px] print:text-[10px]">
-              <p>- Validade: {validityDays}</p>
+              <p>- Validade: {formattedValidity}</p>
             </div>
           </div>
 
@@ -423,7 +676,11 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
           <p className="text-[9px] print:text-[8px] italic text-gray-700 pt-1">
             Documento processado por computador — {PLATFORM_PRODUCT_NAME}
           </p>
-          {(customNotes || invoice.notes) && <p className="text-[10px] print:text-[9px] font-medium">Obs.: {customNotes || invoice.notes}</p>}
+          {customNotes ? (
+            <p className="text-[10px] print:text-[9px] font-medium">Obs.: {customNotes}</p>
+          ) : extractCleanNotes(invoice.notes) ? (
+            <p className="text-[10px] print:text-[9px] font-medium">Obs.: {extractCleanNotes(invoice.notes)}</p>
+          ) : null}
 
           {/* Quadro Resumo do IVA & Totals Box */}
           <div className="grid grid-cols-12 gap-4 items-start pt-1 font-mono text-[10px] print:text-[9px] break-inside-avoid">
