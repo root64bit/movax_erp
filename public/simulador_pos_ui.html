@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Didático: POS Operador vs Painel Admin (Bifurcação de Dados)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .shadow-mode-active {
+      border: 2px solid #8b5cf6 !important;
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.25);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Top Navigation & Role Bar -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between shadow-md">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2">
+        <span class="bg-indigo-600 text-white font-bold text-sm px-2.5 py-1 rounded">ERP/POS</span>
+        <h1 class="text-base font-semibold tracking-wide text-slate-200">Simulador de Arquitetura & Fluxo</h1>
+      </div>
+      <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">Ambiente Didático</span>
+    </div>
+
+    <!-- Active User & Role Switcher -->
+    <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+        <span class="text-xs text-slate-400">Sessão Ativa:</span>
+        <span id="header-user-badge" class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+          <i class="fa-solid fa-user-check"></i> <span id="current-user-name">Operador (caixa01)</span>
+        </span>
+      </div>
+
+      <div class="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+        <button id="btn-view-pos" onclick="switchView('POS')" class="px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-600 text-white transition flex items-center gap-1.5">
+          <i class="fa-solid fa-cash-register"></i> Terminal POS
+        </button>
+        <button id="btn-view-admin" onclick="switchView('ADMIN')" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie"></i> Painel Admin
+        </button>
+      </div>
+
+      <button onclick="toggleUserModal()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-md border border-slate-700 transition flex items-center gap-1">
+        <i class="fa-solid fa-right-left"></i> Trocar Login
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+
+    <!-- =================================================================== -->
+    <!-- VIEW 1: TERMINAL DO OPERADOR DE CAIXA (POS) -->
+    <!-- =================================================================== -->
+    <div id="view-pos" class="space-y-6">
+      
+      <!-- POS Banner / Discrete Mode Toggle -->
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between bg-slate-900/80 border border-slate-800 p-4 rounded-xl gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-cash-register text-indigo-400"></i> Terminal de Vendas #01
+          </h2>
+          <p class="text-xs text-slate-400">Operador: <span class="text-slate-200 font-medium" id="pos-operator-label">caixa01</span> | Turno Aberto</p>
+        </div>
+
+        <!-- Hidden / Discrete Selector Simulator -->
+        <div class="flex items-center gap-3 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1">
+              <i class="fa-solid fa-bolt text-amber-400"></i> Seletor de Canal de Venda
+            </span>
+            <span class="text-[10px] text-slate-500">Simula tecla de atalho discreta (F11) ou opção de pré-conta</span>
+          </div>
+
+          <div class="flex items-center bg-slate-900 rounded p-1 border border-slate-700">
+            <button id="btn-mode-official" onclick="setSaleMode(false)" class="px-2.5 py-1 text-xs rounded font-medium bg-emerald-600 text-white transition flex items-center gap-1">
+              <i class="fa-solid fa-file-invoice"></i> Oficial (Tabela A)
+            </button>
+            <button id="btn-mode-shadow" onclick="setSaleMode(true)" class="px-2.5 py-1 text-xs rounded font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1">
+              <i class="fa-solid fa-user-ninja"></i> Modo Sombra (Tabela B)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- POS Grid: Products (Left) + Cart (Right) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Products Column (2 cols) -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Catálogo de Produtos</h3>
+            <span class="text-xs text-slate-500">Clique para adicionar ao carrinho</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="products-grid">
+            <!-- Dynamic products will be rendered here -->
+          </div>
+
+          <!-- Operation Log Box -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-terminal text-indigo-400"></i> Registo em Tempo Real de Operações
+              </span>
+              <button onclick="clearLogs()" class="text-[11px] text-slate-500 hover:text-slate-300">Limpar</button>
+            </div>
+            <div id="operation-logs" class="h-32 overflow-y-auto space-y-1.5 text-xs font-mono bg-slate-950 p-3 rounded-lg border border-slate-800/80">
+              <div class="text-slate-500 italic">Pronto para registar operações...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cart Column (1 col) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between" id="pos-cart-panel">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-basket-shopping text-indigo-400"></i> Carrinho Atual
+              </h3>
+              <button onclick="clearCart()" class="text-xs text-rose-400 hover:text-rose-300 transition">Esvaziar</button>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="cart-items" class="py-4 space-y-2 max-h-64 overflow-y-auto">
+              <div class="text-center text-slate-500 text-xs py-8">Carrinho vazio. Selecione produtos.</div>
+            </div>
+          </div>
+
+          <!-- Cart Summary & Actions -->
+          <div class="pt-4 border-t border-slate-800 space-y-3">
+            <div class="space-y-1 text-xs">
+              <div class="flex justify-between text-slate-400">
+                <span>Subtotal:</span>
+                <span id="cart-subtotal">0.00 €</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>IVA Estimado (17% / 23%):</span>
+                <span id="cart-tax">0.00 €</span>
+              </div>
+              <div class="flex justify-between text-base font-bold text-white pt-2 border-t border-slate-800">
+                <span>Total a Pagar:</span>
+                <span id="cart-total" class="text-emerald-400">0.00 €</span>
+              </div>
+            </div>
+
+            <!-- Indicator of selected destination -->
+            <div id="sale-destination-indicator" class="text-[11px] p-2 rounded bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check text-emerald-400"></i>
+              <span>Destino: <strong>Tabela A (Oficial / Faturação Certificada)</strong></span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-2">
+              <button id="btn-submit-sale" onclick="checkout()" class="w-full py-3 px-4 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i> Finalizar Venda
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- VIEW 2: PAINEL DE GESTÃO & CONTROLO (ADMINISTRADOR) -->
+    <!-- =================================================================== -->
+    <div id="view-admin" class="hidden space-y-6">
+      
+      <!-- Admin Header -->
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between bg-slate-900/80 border border-slate-800 p-4 rounded-xl gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-purple-400"></i> Painel de Gestão & Consolidação (Administrador)
+          </h2>
+          <p class="text-xs text-slate-400">Visão completa dos dados declarados vs. dados sombra para reconciliação real</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="resetData()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate-right"></i> Repor Dados de Teste
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Card 1: Total Oficial Declarado -->
+        <div class="bg-slate-900 border border-emerald-900/40 p-4 rounded-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-emerald-400 font-semibold mb-1">
+            <span>RECEITA OFICIAL (TABELA A)</span>
+            <i class="fa-solid fa-file-invoice"></i>
+          </div>
+          <div class="text-2xl font-bold text-white" id="kpi-total-oficial">0.00 €</div>
+          <p class="text-[11px] text-slate-400 mt-1">O que consta no SAF-T / Fisco</p>
+          <div class="h-1 w-full bg-emerald-500/20 rounded-full mt-3">
+            <div class="h-1 bg-emerald-500 rounded-full" id="kpi-bar-oficial" style="width: 50%;"></div>
+          </div>
+        </div>
+
+        <!-- Card 2: Total Oculto / Sombra -->
+        <div class="bg-slate-900 border border-purple-900/40 p-4 rounded-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-purple-400 font-semibold mb-1">
+            <span>RECEITA SOMBRA (TABELA B)</span>
+            <i class="fa-solid fa-user-ninja"></i>
+          </div>
+          <div class="text-2xl font-bold text-purple-300" id="kpi-total-sombra">0.00 €</div>
+          <p class="text-[11px] text-slate-400 mt-1">Vendas desviadas / não declaradas</p>
+          <div class="h-1 w-full bg-purple-500/20 rounded-full mt-3">
+            <div class="h-1 bg-purple-500 rounded-full" id="kpi-bar-sombra" style="width: 50%;"></div>
+          </div>
+        </div>
+
+        <!-- Card 3: Total Real em Caixa -->
+        <div class="bg-slate-900 border border-blue-900/40 p-4 rounded-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-blue-400 font-semibold mb-1">
+            <span>TOTAL REAL EM CAIXA</span>
+            <i class="fa-solid fa-vault"></i>
+          </div>
+          <div class="text-2xl font-bold text-blue-300" id="kpi-total-real">0.00 €</div>
+          <p class="text-[11px] text-slate-400 mt-1">Dinheiro físico real na gaveta (A + B)</p>
+          <div class="h-1 w-full bg-blue-500/20 rounded-full mt-3">
+            <div class="h-1 bg-blue-500 rounded-full" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Card 4: Fuga de Stock / Discrepância -->
+        <div class="bg-slate-900 border border-rose-900/40 p-4 rounded-xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-rose-400 font-semibold mb-1">
+            <span>DESVIO DE INVENTÁRIO</span>
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="text-2xl font-bold text-rose-300" id="kpi-discrepancia-stock">0 un</div>
+          <p class="text-[11px] text-slate-400 mt-1">Unidades abatidas sem fatura</p>
+          <div class="h-1 w-full bg-rose-500/20 rounded-full mt-3">
+            <div class="h-1 bg-rose-500 rounded-full" id="kpi-bar-discrepancia" style="width: 0%;"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Transactions Table & Stock Reconciler -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Transactions Table (2 cols) -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-indigo-400"></i> Registo de Transações Registadas
+              </h3>
+              <p class="text-xs text-slate-400">Filtrar por canal de dados</p>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <button onclick="setTableFilter('ALL')" id="filter-all" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-medium">Todos</button>
+              <button onclick="setTableFilter('OFFICIAL')" id="filter-official" class="px-2.5 py-1 rounded text-slate-400 hover:text-slate-200">Apenas Fisco (A)</button>
+              <button onclick="setTableFilter('SHADOW')" id="filter-shadow" class="px-2.5 py-1 rounded text-slate-400 hover:text-slate-200">Apenas Sombra (B)</button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="text-[11px] uppercase bg-slate-950 text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="py-2.5 px-3">Origem</th>
+                  <th class="py-2.5 px-3">Documento</th>
+                  <th class="py-2.5 px-3">Operador</th>
+                  <th class="py-2.5 px-3">Produto</th>
+                  <th class="py-2.5 px-3 text-center">Qtd</th>
+                  <th class="py-2.5 px-3 text-right">Valor</th>
+                  <th class="py-2.5 px-3 text-center">Declarado?</th>
+                </tr>
+              </thead>
+              <tbody id="table-transactions-body" class="divide-y divide-slate-800/60">
+                <!-- Transactions rendered here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Inventory Reconciliation Column (1 col) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div class="pb-3 border-b border-slate-800">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-boxes-stacked text-amber-400"></i> Auditoria de Inventário Físico
+            </h3>
+            <p class="text-xs text-slate-400">Controlo de stock real vs. documentos oficiais</p>
+          </div>
+
+          <div class="space-y-3" id="stock-audit-list">
+            <!-- Dynamic inventory items -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Login Switcher Modal -->
+  <div id="user-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">Selecionar Perfil de Acesso</h3>
+        <button onclick="toggleUserModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="selectUser('caixa01', 'OPERADOR')" class="w-full p-3 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800/80 text-left transition flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-white">caixa01</div>
+            <div class="text-xs text-slate-400">Papel: Operador de Caixa</div>
+          </div>
+          <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded">POS</span>
+        </button>
+
+        <button onclick="selectUser('admin', 'ADMIN')" class="w-full p-3 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800/80 text-left transition flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-white">admin</div>
+            <div class="text-xs text-slate-400">Papel: Administrador Geral</div>
+          </div>
+          <span class="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">Gestão Total</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receipt Simulation Modal -->
+  <div id="receipt-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
+      <div id="receipt-badge"></div>
+      <h3 class="text-lg font-bold text-white" id="receipt-title">Documento Emitido</h3>
+      <div id="receipt-content" class="bg-white text-slate-900 font-mono text-xs p-5 rounded-lg text-left shadow-inner space-y-2"></div>
+      <button onclick="closeReceiptModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition text-sm">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Application Logic (Vanilla JS in-memory state) -->
+  <script>
+    // State
+    const state = {
+      currentUser: { username: 'caixa01', role: 'OPERADOR' },
+      currentView: 'POS', // 'POS' or 'ADMIN'
+      isShadowMode: false,
+      tableFilter: 'ALL',
+      cart: [],
+      products: [
+        { id: 1, name: 'Café Espresso', price: 1.50, stockInitial: 100, stockCurrent: 100, icon: 'fa-mug-hot', color: 'amber' },
+        { id: 2, name: 'Almoço Executivo', price: 15.00, stockInitial: 50, stockCurrent: 50, icon: 'fa-utensils', color: 'rose' },
+        { id: 3, name: 'Água Mineral', price: 1.00, stockInitial: 80, stockCurrent: 80, icon: 'fa-bottle-water', color: 'blue' }
+      ],
+      officialSales: [],
+      shadowSales: []
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      renderProducts();
+      renderCart();
+      renderLogs();
+      updateAdminDashboard();
+    });
+
+    // View Switching
+    function switchView(view) {
+      state.currentView = view;
+      const posView = document.getElementById('view-pos');
+      const adminView = document.getElementById('view-admin');
+      const btnPos = document.getElementById('btn-view-pos');
+      const btnAdmin = document.getElementById('btn-view-admin');
+
+      if (view === 'POS') {
+        posView.classList.remove('hidden');
+        adminView.classList.add('hidden');
+        btnPos.className = 'px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-600 text-white transition flex items-center gap-1.5';
+        btnAdmin.className = 'px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+      } else {
+        posView.classList.add('hidden');
+        adminView.classList.remove('hidden');
+        btnAdmin.className = 'px-3 py-1.5 rounded-md text-xs font-medium bg-purple-600 text-white transition flex items-center gap-1.5';
+        btnPos.className = 'px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+        updateAdminDashboard();
+      }
+    }
+
+    // User Login
+    function toggleUserModal() {
+      const modal = document.getElementById('user-modal');
+      modal.classList.toggle('hidden');
+    }
+
+    function selectUser(username, role) {
+      state.currentUser = { username, role };
+      document.getElementById('current-user-name').innerText = `${username} (${role})`;
+      document.getElementById('pos-operator-label').innerText = username;
+      toggleUserModal();
+      logOperation(`Utilizador alternado para [${username}] com papel [${role}]`);
+    }
+
+    // Mode Toggle (Official vs Shadow)
+    function setSaleMode(isShadow) {
+      state.isShadowMode = isShadow;
+      const btnOff = document.getElementById('btn-mode-official');
+      const btnSha = document.getElementById('btn-mode-shadow');
+      const ind = document.getElementById('sale-destination-indicator');
+      const cartPanel = document.getElementById('pos-cart-panel');
+      const btnSubmit = document.getElementById('btn-submit-sale');
+
+      if (isShadow) {
+        btnSha.className = 'px-2.5 py-1 text-xs rounded font-medium bg-purple-600 text-white transition flex items-center gap-1';
+        btnOff.className = 'px-2.5 py-1 text-xs rounded font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1';
+        ind.className = 'text-[11px] p-2 rounded bg-purple-950/40 border border-purple-800/40 text-purple-300 flex items-center gap-1.5';
+        ind.innerHTML = '<i class="fa-solid fa-user-ninja text-purple-400"></i> <span>Destino: <strong>Tabela B (Modo Sombra / Pré-Conta)</strong></span>';
+        cartPanel.classList.add('shadow-mode-active');
+        btnSubmit.className = 'w-full py-3 px-4 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white shadow-lg transition flex items-center justify-center gap-2';
+        logOperation('MODO DISCRETO ATIVADO: Próxima transação será gravada na Tabela B.');
+      } else {
+        btnOff.className = 'px-2.5 py-1 text-xs rounded font-medium bg-emerald-600 text-white transition flex items-center gap-1';
+        btnSha.className = 'px-2.5 py-1 text-xs rounded font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1';
+        ind.className = 'text-[11px] p-2 rounded bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 flex items-center gap-1.5';
+        ind.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>Destino: <strong>Tabela A (Oficial / Faturação Certificada)</strong></span>';
+        cartPanel.classList.remove('shadow-mode-active');
+        btnSubmit.className = 'w-full py-3 px-4 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg transition flex items-center justify-center gap-2';
+        logOperation('MODO OFICIAL ATIVADO: Transações serão gravadas na Tabela A.');
+      }
+    }
+
+    // Render Products Grid
+    function renderProducts() {
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = '';
+
+      state.products.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-900 border border-slate-800 hover:border-slate-700 p-4 rounded-xl cursor-pointer transition flex flex-col justify-between select-none';
+        card.onclick = () => addToCart(p.id);
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-10 h-10 rounded-lg bg-${p.color}-500/10 text-${p.color}-400 flex items-center justify-center text-lg">
+              <i class="fa-solid ${p.icon}"></i>
+            </span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded ${p.stockCurrent > 10 ? 'bg-slate-800 text-slate-300' : 'bg-rose-500/20 text-rose-300'}">
+              Stock: ${p.stockCurrent} un
+            </span>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold text-white">${p.name}</h4>
+            <div class="text-base font-bold text-indigo-400 mt-1">${p.price.toFixed(2)} €</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Cart Operations
+    function addToCart(productId) {
+      const product = state.products.find(p => p.id === productId);
+      if (!product || product.stockCurrent <= 0) {
+        alert('Produto sem stock disponível!');
+        return;
+      }
+
+      const existing = state.cart.find(item => item.productId === productId);
+      if (existing) {
+        if (existing.quantity + 1 > product.stockCurrent) {
+          alert('Quantidade máxima em stock atingida.');
+          return;
+        }
+        existing.quantity++;
+      } else {
+        state.cart.push({ productId, name: product.name, price: product.price, quantity: 1 });
+      }
+
+      renderCart();
+    }
+
+    function changeCartQuantity(productId, delta) {
+      const item = state.cart.find(i => i.productId === productId);
+      if (!item) return;
+
+      const product = state.products.find(p => p.id === productId);
+      if (delta > 0 && item.quantity + 1 > product.stockCurrent) {
+        alert('Stock insuficiente.');
+        return;
+      }
+
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        state.cart = state.cart.filter(i => i.productId !== productId);
+      }
+
+      renderCart();
+    }
+
+    function clearCart() {
+      state.cart = [];
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items');
+      const subtotalEl = document.getElementById('cart-subtotal');
+      const taxEl = document.getElementById('cart-tax');
+      const totalEl = document.getElementById('cart-total');
+
+      if (state.cart.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-500 text-xs py-8">Carrinho vazio. Selecione produtos.</div>';
+        subtotalEl.innerText = '0.00 €';
+        taxEl.innerText = '0.00 €';
+        totalEl.innerText = '0.00 €';
+        return;
+      }
+
+      let subtotal = 0;
+      container.innerHTML = '';
+
+      state.cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        subtotal += itemTotal;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800/80 text-xs';
+        row.innerHTML = `
+          <div class="flex-1 pr-2">
+            <div class="font-medium text-white">${item.name}</div>
+            <div class="text-slate-400 text-[11px]">${item.price.toFixed(2)} € un</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center bg-slate-900 rounded border border-slate-700">
+              <button onclick="changeCartQuantity(${item.productId}, -1)" class="px-2 py-0.5 text-slate-400 hover:text-white">-</button>
+              <span class="px-2 font-bold text-white">${item.quantity}</span>
+              <button onclick="changeCartQuantity(${item.productId}, 1)" class="px-2 py-0.5 text-slate-400 hover:text-white">+</button>
+            </div>
+            <div class="font-bold text-slate-200 w-16 text-right">${itemTotal.toFixed(2)} €</div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      const tax = subtotal * 0.17; // Exemplo taxa
+      const total = subtotal;
+
+      subtotalEl.innerText = `${(total / 1.17).toFixed(2)} €`;
+      taxEl.innerText = `${(total - (total / 1.17)).toFixed(2)} €`;
+      totalEl.innerText = `${total.toFixed(2)} €`;
+    }
+
+    // Checkout Action
+    function checkout() {
+      if (state.cart.length === 0) {
+        alert('O carrinho está vazio!');
+        return;
+      }
+
+      const totalValue = state.cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+      const isShadow = state.isShadowMode;
+      const timestamp = new Date().toLocaleTimeString();
+
+      // Decrement stock for all items
+      state.cart.forEach(item => {
+        const prod = state.products.find(p => p.id === item.productId);
+        if (prod) {
+          prod.stockCurrent -= item.quantity;
+        }
+      });
+
+      let docNumber = '';
+      let receiptHtml = '';
+
+      if (isShadow) {
+        // Tabela B (Sombra)
+        const id = state.shadowSales.length + 1;
+        docNumber = `DOC-INT-${id}`;
+
+        const saleRecord = {
+          id,
+          docNumber,
+          operator: state.currentUser.username,
+          items: [...state.cart],
+          total: totalValue,
+          timestamp,
+          isOfficial: false
+        };
+        state.shadowSales.push(saleRecord);
+
+        logOperation(`🔴 VENDA SOMBRA (Tabela B): ${docNumber} | Valor: ${totalValue.toFixed(2)} € | Stock abatido sem fatura.`);
+
+        showReceiptModal('SOMBRA', docNumber, totalValue, state.cart, timestamp);
+      } else {
+        // Tabela A (Oficial)
+        const id = state.officialSales.length + 1;
+        docNumber = `FT 2026/${id}`;
+
+        const saleRecord = {
+          id,
+          docNumber,
+          operator: state.currentUser.username,
+          items: [...state.cart],
+          total: totalValue,
+          timestamp,
+          isOfficial: true
+        };
+        state.officialSales.push(saleRecord);
+
+        logOperation(`🟢 VENDA OFICIAL (Tabela A): ${docNumber} | Valor: ${totalValue.toFixed(2)} € | Fatura emitida.`);
+
+        showReceiptModal('OFICIAL', docNumber, totalValue, state.cart, timestamp);
+      }
+
+      clearCart();
+      renderProducts();
+      updateAdminDashboard();
+    }
+
+    // Modal Receipt
+    function showReceiptModal(type, docNumber, total, items, timestamp) {
+      const modal = document.getElementById('receipt-modal');
+      const badge = document.getElementById('receipt-badge');
+      const content = document.getElementById('receipt-content');
+      const title = document.getElementById('receipt-title');
+
+      if (type === 'OFICIAL') {
+        badge.innerHTML = '<span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold uppercase"><i class="fa-solid fa-certificate"></i> Fatura Oficial Certificada (Tabela A)</span>';
+        title.innerText = 'Fatura Fiscal Emitida';
+        content.innerHTML = `
+          <div class="text-center font-bold pb-2 border-b border-dashed border-slate-300">
+            EMPRESA MODELO, LDA<br>
+            NIF: 509999999 | MAPUTO<br>
+            <strong>${docNumber}</strong> (ORIGINAL)
+          </div>
+          <div class="py-2 text-[11px] border-b border-dashed border-slate-300">
+            Data/Hora: ${timestamp}<br>
+            Operador: ${state.currentUser.username}<br>
+            Cliente: Consumidor Final
+          </div>
+          <div class="py-2 space-y-1">
+            ${items.map(i => `<div class="flex justify-between"><span>${i.name} x${i.quantity}</span><span>${(i.price * i.quantity).toFixed(2)} €</span></div>`).join('')}
+          </div>
+          <div class="pt-2 border-t border-dashed border-slate-300 font-bold flex justify-between text-sm">
+            <span>TOTAL PAGO:</span>
+            <span>${total.toFixed(2)} €</span>
+          </div>
+          <div class="text-[10px] text-center pt-2 text-slate-500">
+            Hash: 4a9f-81b2-ee40-c9a1<br>
+            Processado por Programa Certificado
+          </div>
+        `;
+      } else {
+        badge.innerHTML = '<span class="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-full text-xs font-bold uppercase"><i class="fa-solid fa-user-ninja"></i> Talão Não Fiscal / Pré-Conta (Tabela B)</span>';
+        title.innerText = 'Talão de Conferência';
+        content.innerHTML = `
+          <div class="text-center font-bold pb-2 border-b border-dashed border-slate-300 text-slate-700">
+            TALÃO DE CONFERÊNCIA DE MESA<br>
+            DOCUMENTO NÃO FISCAL<br>
+            <strong>${docNumber}</strong>
+          </div>
+          <div class="py-2 text-[11px] border-b border-dashed border-slate-300 text-slate-600">
+            Data/Hora: ${timestamp}<br>
+            Terminal: POS-01
+          </div>
+          <div class="py-2 space-y-1 text-slate-800">
+            ${items.map(i => `<div class="flex justify-between"><span>${i.name} x${i.quantity}</span><span>${(i.price * i.quantity).toFixed(2)} €</span></div>`).join('')}
+          </div>
+          <div class="pt-2 border-t border-dashed border-slate-300 font-bold flex justify-between text-sm text-slate-900">
+            <span>VALOR A PAGAR:</span>
+            <span>${total.toFixed(2)} €</span>
+          </div>
+          <div class="text-[10px] text-center pt-2 text-purple-700 italic">
+            * Não serve de fatura fiscal * (Omitido da contabilidade oficial)
+          </div>
+        `;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+    }
+
+    // Admin Dashboard Updates
+    function updateAdminDashboard() {
+      const totalOficial = state.officialSales.reduce((acc, s) => acc + s.total, 0);
+      const totalSombra = state.shadowSales.reduce((acc, s) => acc + s.total, 0);
+      const totalReal = totalOficial + totalSombra;
+
+      document.getElementById('kpi-total-oficial').innerText = `${totalOficial.toFixed(2)} €`;
+      document.getElementById('kpi-total-sombra').innerText = `${totalSombra.toFixed(2)} €`;
+      document.getElementById('kpi-total-real').innerText = `${totalReal.toFixed(2)} €`;
+
+      // Discrepancy in units
+      let totalUnidadesFaturadas = 0;
+      let totalUnidadesSombra = 0;
+
+      state.officialSales.forEach(s => s.items.forEach(i => totalUnidadesFaturadas += i.quantity));
+      state.shadowSales.forEach(s => s.items.forEach(i => totalUnidadesSombra += i.quantity));
+
+      document.getElementById('kpi-discrepancia-stock').innerText = `${totalUnidadesSombra} un`;
+
+      // Percentages
+      const pctOficial = totalReal > 0 ? (totalOficial / totalReal) * 100 : 50;
+      const pctSombra = totalReal > 0 ? (totalSombra / totalReal) * 100 : 50;
+      document.getElementById('kpi-bar-oficial').style.width = `${pctOficial}%`;
+      document.getElementById('kpi-bar-sombra').style.width = `${pctSombra}%`;
+
+      renderTransactionsTable();
+      renderStockAudit();
+    }
+
+    function setTableFilter(filter) {
+      state.tableFilter = filter;
+      document.getElementById('filter-all').className = filter === 'ALL' ? 'px-2.5 py-1 rounded bg-indigo-600 text-white font-medium' : 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200';
+      document.getElementById('filter-official').className = filter === 'OFFICIAL' ? 'px-2.5 py-1 rounded bg-emerald-600 text-white font-medium' : 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200';
+      document.getElementById('filter-shadow').className = filter === 'SHADOW' ? 'px-2.5 py-1 rounded bg-purple-600 text-white font-medium' : 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200';
+      renderTransactionsTable();
+    }
+
+    function renderTransactionsTable() {
+      const tbody = document.getElementById('table-transactions-body');
+      tbody.innerHTML = '';
+
+      let list = [];
+      if (state.tableFilter === 'ALL' || state.tableFilter === 'OFFICIAL') {
+        state.officialSales.forEach(s => {
+          s.items.forEach(item => {
+            list.push({
+              source: 'OFICIAL (Tabela A)',
+              doc: s.docNumber,
+              operator: s.operator,
+              product: item.name,
+              quantity: item.quantity,
+              total: item.price * item.quantity,
+              isDeclared: true
+            });
+          });
+        });
+      }
+
+      if (state.tableFilter === 'ALL' || state.tableFilter === 'SHADOW') {
+        state.shadowSales.forEach(s => {
+          s.items.forEach(item => {
+            list.push({
+              source: 'SOMBRA (Tabela B)',
+              doc: s.docNumber,
+              operator: s.operator,
+              product: item.name,
+              quantity: item.quantity,
+              total: item.price * item.quantity,
+              isDeclared: false
+            });
+          });
+        });
+      }
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">Nenhuma transação registada até ao momento.</td></tr>';
+        return;
+      }
+
+      list.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = row.isDeclared ? 'hover:bg-slate-800/40' : 'bg-purple-950/20 hover:bg-purple-950/30';
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-semibold ${row.isDeclared ? 'text-emerald-400' : 'text-purple-400'}">${row.source}</td>
+          <td class="py-2 px-3 font-mono font-medium text-white">${row.doc}</td>
+          <td class="py-2 px-3 text-slate-300">${row.operator}</td>
+          <td class="py-2 px-3 text-slate-200">${row.product}</td>
+          <td class="py-2 px-3 text-center text-slate-300 font-bold">${row.quantity}</td>
+          <td class="py-2 px-3 text-right font-mono font-bold text-white">${row.total.toFixed(2)} €</td>
+          <td class="py-2 px-3 text-center">
+            ${row.isDeclared ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">SIM</span>' : '<span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold">NÃO (OCULTO)</span>'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderStockAudit() {
+      const container = document.getElementById('stock-audit-list');
+      container.innerHTML = '';
+
+      state.products.forEach(p => {
+        // Count official sales
+        let soldOfficial = 0;
+        state.officialSales.forEach(s => {
+          const match = s.items.find(i => i.productId === p.id);
+          if (match) soldOfficial += match.quantity;
+        });
+
+        // Count shadow sales
+        let soldShadow = 0;
+        state.shadowSales.forEach(s => {
+          const match = s.items.find(i => i.productId === p.id);
+          if (match) soldShadow += match.quantity;
+        });
+
+        const expectedStock = p.stockInitial - soldOfficial;
+        const discrepancy = p.stockCurrent - expectedStock;
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-950 border border-slate-800 p-3.5 rounded-xl text-xs space-y-2';
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-white text-sm">${p.name}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${discrepancy === 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+              ${discrepancy === 0 ? 'CONFORME' : '🚨 DESVIO DETETADO'}
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-slate-400 pt-1">
+            <div>Stock Inicial: <strong class="text-slate-200">${p.stockInitial}</strong></div>
+            <div>Vendas Faturadas: <strong class="text-emerald-400">${soldOfficial}</strong></div>
+            <div>Vendas Ocultas: <strong class="text-purple-400">${soldShadow}</strong></div>
+            <div>Stock Físico Real: <strong class="text-white">${p.stockCurrent}</strong></div>
+          </div>
+          ${discrepancy !== 0 ? `
+            <div class="p-2 rounded bg-rose-950/40 border border-rose-800/40 text-[11px] text-rose-300">
+              <i class="fa-solid fa-triangle-exclamation"></i> <strong>${Math.abs(discrepancy)} unidades</strong> saíram do armazém sem fatura oficial de suporte.
+            </div>
+          ` : ''}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function logOperation(msg) {
+      const logs = document.getElementById('operation-logs');
+      const entry = document.createElement('div');
+      const time = new Date().toLocaleTimeString();
+      entry.className = 'text-slate-300';
+      entry.innerHTML = `<span class="text-slate-500">[${time}]</span> ${msg}`;
+      logs.prepend(entry);
+    }
+
+    function clearLogs() {
+      document.getElementById('operation-logs').innerHTML = '<div class="text-slate-500 italic">Logs limpos.</div>';
+    }
+
+    function resetData() {
+      state.products = [
+        { id: 1, name: 'Café Espresso', price: 1.50, stockInitial: 100, stockCurrent: 100, icon: 'fa-mug-hot', color: 'amber' },
+        { id: 2, name: 'Almoço Executivo', price: 15.00, stockInitial: 50, stockCurrent: 50, icon: 'fa-utensils', color: 'rose' },
+        { id: 3, name: 'Água Mineral', price: 1.00, stockInitial: 80, stockCurrent: 80, icon: 'fa-bottle-water', color: 'blue' }
+      ];
+      state.officialSales = [];
+      state.shadowSales = [];
+      state.cart = [];
+      renderProducts();
+      renderCart();
+      updateAdminDashboard();
+      logOperation('Base de dados e inventário repostos para valores iniciais.');
+    }
+  </script>
+</body>
+</html>
