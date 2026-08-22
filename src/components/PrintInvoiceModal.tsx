@@ -322,10 +322,10 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
   };
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:bg-white print:p-0 print:static print:block print:inset-auto print:backdrop-blur-none print-document-modal">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden text-black print:shadow-none print:max-w-none print:w-full print:rounded-none print:p-0 print:m-0 print:border-none">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto print:bg-white print:p-0 print:static print:block print:inset-auto print:backdrop-blur-none print-document-modal">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden text-black my-auto print:max-h-none print:max-w-none print:w-full print:rounded-none print:p-0 print:m-0 print:border-none print:shadow-none">
         {/* Modal Top Bar - Hidden during printing */}
-        <div className="bg-[#001e40] text-white px-6 py-3 flex justify-between items-center print:hidden">
+        <div className="shrink-0 bg-[#001e40] text-white px-5 py-3 flex justify-between items-center z-10 print:hidden border-b border-blue-900/50">
           <span className="font-bold text-sm flex items-center">
             <span className="material-symbols-outlined mr-2">print</span>
             Visualização de Impressão — {docTitleName} {invoice.docNumber}
@@ -333,18 +333,18 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowEditPanel((prev) => !prev)}
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded flex items-center transition-all"
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded flex items-center transition-all cursor-pointer shadow-xs"
             >
               <span className="material-symbols-outlined text-sm mr-1">edit</span>
               {showEditPanel ? 'Ocultar Edição' : '✏️ Editar Bancos & Validade'}
             </button>
             <button
               onClick={handlePrint}
-              className="px-4 py-1.5 bg-[#006e25] text-white text-xs font-bold rounded hover:brightness-110 flex items-center"
+              className="px-4 py-1.5 bg-[#006e25] text-white text-xs font-bold rounded hover:brightness-110 flex items-center cursor-pointer shadow-xs"
             >
               <span className="material-symbols-outlined text-sm mr-1">print</span> Imprimir (F9)
             </button>
-            <button onClick={onClose} className="text-white/80 hover:text-white ml-2">
+            <button onClick={onClose} className="text-white/80 hover:text-white ml-2 p-1 rounded hover:bg-white/10 transition cursor-pointer">
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
@@ -352,11 +352,11 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
 
         {/* Inline Admin Edit Panel for Quotation Bank Account & Notes */}
         {showEditPanel && (
-          <div className="bg-slate-50 dark:bg-[#1a2332] p-5 border-b border-slate-300 dark:border-slate-700 text-xs font-sans space-y-4 print:hidden shadow-inner">
+          <div className="shrink-0 bg-slate-50 dark:bg-[#1a2332] p-4 border-b border-slate-300 dark:border-slate-700 text-xs font-sans space-y-3.5 max-h-[46vh] overflow-y-auto print:hidden shadow-inner">
             <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-              <div className="flex items-center space-x-2">
-                <span className="material-symbols-outlined text-[#003366] dark:text-[#a7c8ff]">account_balance</span>
-                <h4 className="font-extrabold uppercase text-sm text-[#003366] dark:text-[#a7c8ff]">
+              <div className="flex items-center space-x-1.5">
+                <span className="material-symbols-outlined text-[#003366] dark:text-[#a7c8ff] text-base">account_balance</span>
+                <h4 className="font-extrabold uppercase text-xs sm:text-sm text-[#003366] dark:text-[#a7c8ff]">
                   Personalização de Dados Bancários, Validade e Observações
                 </h4>
               </div>
@@ -367,14 +367,14 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
             </div>
 
             {saveSuccess && (
-              <div className="p-2.5 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded font-bold flex items-center gap-2">
+              <div className="p-2 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-400 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">check_circle</span>
                 Predefinições da empresa guardadas com sucesso na base de dados!
               </div>
             )}
 
             {saveError && (
-              <div className="p-2.5 bg-red-100 dark:bg-red-950/60 border border-red-400 dark:border-red-700 text-red-900 dark:text-red-200 rounded font-bold">
+              <div className="p-2 bg-red-100 dark:bg-red-950/60 border border-red-400 dark:border-red-700 text-red-900 dark:text-red-200 rounded font-bold">
                 ⚠️ {saveError}
               </div>
             )}
@@ -388,68 +388,63 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
                 <button
                   type="button"
                   onClick={handleAddBankAccount}
-                  className="px-2.5 py-1 bg-[#003366] text-white rounded font-bold text-[11px] hover:bg-blue-900 transition flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 bg-[#003366] text-white rounded font-bold text-[11px] hover:bg-blue-900 transition flex items-center gap-1 cursor-pointer shadow-2xs"
                 >
                   <span className="material-symbols-outlined text-xs">add</span>
                   <span>Adicionar Banco</span>
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {bankAccounts.map((bank, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-white dark:bg-[#282c2e] p-2.5 rounded-lg border border-slate-300 dark:border-slate-600 shadow-xs">
-                    <div className="col-span-12 sm:col-span-4">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Banco</label>
-                      <div className="flex gap-1">
-                        <select
-                          value={MOZAMBIQUE_BANK_PRESETS.includes(bank.bankName) ? bank.bankName : 'Outro (Personalizado)'}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === 'Outro (Personalizado)') {
-                              handleUpdateBankAccount(idx, 'bankName', 'Novo Banco');
-                            } else {
-                              handleUpdateBankAccount(idx, 'bankName', val);
-                            }
-                          }}
-                          className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#1f2325] text-xs font-bold font-sans"
-                        >
-                          {MOZAMBIQUE_BANK_PRESETS.map((p) => (
-                            <option key={p} value={p}>{p}</option>
-                          ))}
-                        </select>
-                      </div>
+                  <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-white dark:bg-[#282c2e] p-2 rounded-lg border border-slate-300 dark:border-slate-600 shadow-2xs">
+                    <div className="w-full sm:w-1/3">
+                      <select
+                        value={MOZAMBIQUE_BANK_PRESETS.includes(bank.bankName) ? bank.bankName : 'Outro (Personalizado)'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'Outro (Personalizado)') {
+                            handleUpdateBankAccount(idx, 'bankName', 'Novo Banco');
+                          } else {
+                            handleUpdateBankAccount(idx, 'bankName', val);
+                          }
+                        }}
+                        className="w-full py-1.5 px-2 rounded border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#1f2325] text-xs font-bold font-sans"
+                      >
+                        {MOZAMBIQUE_BANK_PRESETS.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
                     </div>
 
-                    <div className="col-span-12 sm:col-span-4">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Nº de Conta</label>
+                    <div className="w-[45%] sm:w-1/3">
                       <input
                         type="text"
-                        placeholder="ex: 12345678901"
+                        placeholder="Nº de Conta"
                         value={bank.account}
                         onChange={(e) => handleUpdateBankAccount(idx, 'account', e.target.value)}
-                        className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1f2325] font-mono text-xs font-bold"
+                        className="w-full py-1.5 px-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1f2325] font-mono text-xs font-bold"
                       />
                     </div>
 
-                    <div className="col-span-10 sm:col-span-3">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">NIB (21 dígitos)</label>
+                    <div className="w-[45%] sm:w-1/3">
                       <input
                         type="text"
-                        placeholder="ex: 000100001234567890123"
+                        placeholder="NIB (21 dígitos)"
                         value={bank.nib}
                         onChange={(e) => handleUpdateBankAccount(idx, 'nib', e.target.value)}
-                        className="w-full p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1f2325] font-mono text-xs"
+                        className="w-full py-1.5 px-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1f2325] font-mono text-xs"
                       />
                     </div>
 
-                    <div className="col-span-2 sm:col-span-1 text-center pt-3">
+                    <div className="w-[10%] sm:w-auto text-center">
                       <button
                         type="button"
                         onClick={() => handleRemoveBankAccount(idx)}
                         className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition cursor-pointer"
                         title="Remover Conta Bancária"
                       >
-                        <span className="material-symbols-outlined text-base">delete</span>
+                        <span className="material-symbols-outlined text-base leading-none">delete</span>
                       </button>
                     </div>
                   </div>
@@ -460,20 +455,21 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
             {/* Validity & Notes Section */}
             <div className="grid grid-cols-12 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
               <div className="col-span-12 md:col-span-5 space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase text-[11px]">
-                    Validade da Proposta / Condição
-                  </label>
-                </div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase text-[11px]">
+                  {isQuotation ? 'Validade da Proposta' : 'Condição de Pagamento / Vencimento'}
+                </label>
                 <input
                   type="text"
                   value={validityDays}
                   onChange={(e) => setValidityDays(e.target.value)}
-                  placeholder="ex: 15 dias, 30 dias"
+                  placeholder={isQuotation ? 'ex: 15 dias' : 'ex: Pronto pag., 30 dias'}
                   className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-bold text-xs"
                 />
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {['7 dias', '15 dias', '30 dias', 'Pronto pag.'].map((preset) => (
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {(isQuotation
+                    ? ['7 dias', '15 dias', '30 dias', 'Pronto pag.']
+                    : ['Pronto pag.', '15 dias', '30 dias', '60 dias']
+                  ).map((preset) => (
                     <button
                       key={preset}
                       type="button"
@@ -489,8 +485,8 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
                   ))}
                 </div>
                 {formattedValidity && (
-                  <p className="text-[10px] font-mono text-[#006e25] dark:text-green-400 font-bold pt-1">
-                    No documento: {formattedValidity}
+                  <p className="text-[10px] font-mono text-[#006e25] dark:text-green-400 font-bold pt-0.5">
+                    No impresso: {formattedValidity}
                   </p>
                 )}
               </div>
@@ -500,11 +496,11 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
                   Observações / Condições Comerciais
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={customNotes}
                   onChange={(e) => setCustomNotes(e.target.value)}
                   placeholder="ex: Preços incluem montagem. Prazo de entrega: Imediato salvo venda."
-                  className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-sans text-xs focus-ring"
+                  className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#282c2e] font-sans text-xs"
                 />
               </div>
             </div>
@@ -515,7 +511,7 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
                 type="button"
                 disabled={isSavingDefaults}
                 onClick={handleSaveCompanyDefaults}
-                className="px-4 py-2 bg-[#006e25] text-white rounded font-bold text-xs uppercase hover:bg-green-700 transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-[#006e25] text-white rounded font-bold text-xs uppercase hover:bg-green-700 transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-sm">save</span>
                 <span>{isSavingDefaults ? 'A guardar…' : 'Guardar como Predefinição da Empresa'}</span>
@@ -533,7 +529,7 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({ isOpen, on
         )}
 
         {/* Printable Area matching official invoice/quotation structure */}
-        <div className="p-8 font-sans space-y-3 max-h-[85vh] overflow-y-auto print:max-h-none print:p-0 print:space-y-2 text-xs">
+        <div className="flex-1 p-8 font-sans space-y-3 overflow-y-auto print:overflow-visible print:max-h-none print:p-0 print:space-y-2 text-xs bg-white">
           
           {/* Top Address Banner Header matching Image 3 Model */}
           <div className="text-center font-serif text-lg print:text-base font-black tracking-wide text-black uppercase">
