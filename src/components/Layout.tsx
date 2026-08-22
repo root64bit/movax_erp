@@ -96,7 +96,6 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'dashboard', label: 'Início', icon: 'home', group: 'Principal', visible: permissions.length === 0 || has('dashboard.read', 'products.view') },
       { id: 'inventory', label: 'Artigos e Stock', icon: 'inventory_2', group: 'Principal', visible: permissions.length === 0 || has('products.read', 'products.view', 'stock.read', 'stock.view') },
       { id: 'sales', label: 'Nova Venda', icon: 'local_offer', group: 'Principal', visible: permissions.length === 0 || has('sales.create') },
-      { id: 'simulator', label: 'Terminal POS (Balcão)', icon: 'point_of_sale', group: 'Principal', visible: true },
       { id: 'quotation', label: 'Cotação', icon: 'request_quote', group: 'Principal', visible: permissions.length === 0 || has('sales.create', 'sales.read') },
       { id: 'purchases', label: 'Compras', icon: 'shopping_cart', group: 'Principal', visible: permissions.length === 0 || has('purchases.read', 'purchases.invoice.create') },
       { id: 'movements', label: 'Entradas e Saídas', icon: 'swap_horiz', group: 'Principal', visible: permissions.length === 0 || has('stock.read', 'stock.view', 'stock.direct_entry', 'stock.direct_exit') },

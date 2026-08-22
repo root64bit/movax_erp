@@ -133,14 +133,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span>Nova Venda / POS</span>
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => navigate('simulator')}
-                className="w-full p-3 rounded-xl border border-outline-variant hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95"
-              >
-                <span className="material-symbols-outlined text-base">point_of_sale</span>
-                <span>Terminal POS (Balcão)</span>
-              </button>
               {has('sales.create') && (
                 <button
                   type="button"
